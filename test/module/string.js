@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {rstring} from '../rstring.js';
+import {rstring} from '../../rstring.js';
 
 describe('string.js', () => {
 

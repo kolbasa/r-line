@@ -526,9 +526,14 @@ let DELETED_INDICATOR = ' D ';
  *
  * @param sFilePath
  * @param aHandler
- * @param bOpt
+ * @param {object=} options
+ * @param {boolean=} options.preview
+ * @param {boolean=} options.showSpaces
+ * @param {boolean=} options.previewDeletedLines
+ * @param {boolean=} options.previewOriginalLines
+ * @param {boolean=} options.previewUnchangedLines
  */
-function _handleFile(sFilePath, aHandler, bOpt) {
+function _handleFile(sFilePath, aHandler, options) {
 
     if (!_.isValidFile(sFilePath)) {
         console.error('Not a valid file: \'' + sFilePath + '\'');
@@ -537,11 +542,11 @@ function _handleFile(sFilePath, aHandler, bOpt) {
 
     let sModifiedFileContent = '';
 
-    let bPreview = _.isNil(bOpt) ? false : bOpt.bPreview;
-    let bShowSpaces = _.isNil(bOpt) ? false : bOpt.bShowSpaces;
-    let bPreviewDeletedLines = _.isNil(bOpt) ? false : bOpt.bPreviewDeletedLines;
-    let bPreviewOriginalLine = _.isNil(bOpt) ? true : bOpt.bPreviewOriginalLines;
-    let bPreviewUnchangedLines = _.isNil(bOpt) ? true : bOpt.bPreviewUnchangedLines;
+    let preview = _.isNil(options) ? false : options.preview;
+    let showSpaces = _.isNil(options) ? false : options.showSpaces;
+    let previewDeletedLines = _.isNil(options) ? false : options.previewDeletedLines;
+    let previewOriginalLine = _.isNil(options) ? true : options.previewOriginalLines;
+    let previewUnchangedLines = _.isNil(options) ? true : options.previewUnchangedLines;
 
     if (!Array.isArray(aHandler)) {
         aHandler = [aHandler];
@@ -571,17 +576,17 @@ function _handleFile(sFilePath, aHandler, bOpt) {
      * @param sModifiedLine
      * @param sLineNumber
      * @param sLine
-     * @param bPreview
+     * @param preview
      * @returns {*}
      */
-    function _previewModifiedLine(sModifiedLine, sLineNumber, sLine, bPreview) {
-        if (bPreview) {
+    function _previewModifiedLine(sModifiedLine, sLineNumber, sLine, preview) {
+        if (preview) {
             let sOriginal = '';
             let sLineIndicator = CHANGED_INDICATOR;
             let bHasNewLines = sModifiedLine.split('\n');
 
-            if (bPreviewOriginalLine) {
-                if (bShowSpaces) {
+            if (previewOriginalLine) {
+                if (showSpaces) {
                     sLine = _.replaceTabs(_.replaceSpaces(sLine));
                 }
                 sOriginal = sLineNumber + _.repeat(' ', 3) + ORIGINAL_INDICATOR_1 + sLine + '\n';
@@ -592,12 +597,12 @@ function _handleFile(sFilePath, aHandler, bOpt) {
                 }
             }
 
-            if (bShowSpaces) {
+            if (showSpaces) {
                 sModifiedLine = _.replaceTabs(_.replaceSpaces(sModifiedLine));
             }
 
             let nPaddingLength = sLineNumber.toString().length;
-            sModifiedLine = sOriginal + (bPreviewOriginalLine ? _.repeat(' ', nPaddingLength) : sLineNumber) +
+            sModifiedLine = sOriginal + (previewOriginalLine ? _.repeat(' ', nPaddingLength) : sLineNumber) +
                 MODIFIED_INDICATOR + sLineIndicator + _previewNewLines(sModifiedLine, nPaddingLength);
 
         }
@@ -617,7 +622,7 @@ function _handleFile(sFilePath, aHandler, bOpt) {
             for (let i = 1; i < aLines.length; i++) {
                 sLine += '\n' + _.repeat(' ', nPaddingLength) +
                     MODIFIED_INDICATOR + (
-                        bPreviewOriginalLine ? ORIGINAL_INDICATOR_3 : CHANGED_INDICATOR
+                        previewOriginalLine ? ORIGINAL_INDICATOR_3 : CHANGED_INDICATOR
                     ) + aLines[i];
             }
         }
@@ -628,12 +633,12 @@ function _handleFile(sFilePath, aHandler, bOpt) {
      *
      * @param sLineNumber
      * @param sLine
-     * @param bPreview
+     * @param preview
      * @returns {*}
      */
-    function _previewLineNumber(sLineNumber, sLine, bPreview) {
-        if (bPreview) {
-            if (bShowSpaces) {
+    function _previewLineNumber(sLineNumber, sLine, preview) {
+        if (preview) {
+            if (showSpaces) {
                 sLine = _.replaceTabs(_.replaceSpaces(sLine));
             }
             sLine = sLineNumber + _.repeat(' ', 3) + START_INDICATOR + sLine;
@@ -646,12 +651,12 @@ function _handleFile(sFilePath, aHandler, bOpt) {
      * @param sModifiedFileContent
      * @param sLineNumber
      * @param sLine
-     * @param bPreview
+     * @param preview
      * @returns {*}
      */
-    function _previewDeletedLine(sModifiedFileContent, sLineNumber, sLine, bPreview) {
-        if (bPreview && bPreviewDeletedLines) {
-            if (bShowSpaces) {
+    function _previewDeletedLine(sModifiedFileContent, sLineNumber, sLine, preview) {
+        if (preview && previewDeletedLines) {
+            if (showSpaces) {
                 sLine = _.replaceTabs(_.replaceSpaces(sLine));
             }
             sModifiedFileContent += sLineNumber + DELETED_INDICATOR +
@@ -664,28 +669,28 @@ function _handleFile(sFilePath, aHandler, bOpt) {
      *
      * @param aOriginalLines
      * @param aModifiedLines
-     * @param bPreview
+     * @param preview
      */
-    function _applyChanges(aOriginalLines, aModifiedLines, bPreview) {
+    function _applyChanges(aOriginalLines, aModifiedLines, preview) {
 
         for (let i in aModifiedLines) {
             if (aModifiedLines.hasOwnProperty(i)) {
                 let nPaddingLength = aOriginalLines.length.toString().length;
-                let sLineNumber = bPreview ? _.pad((parseInt(i) + 1), nPaddingLength, ' ') : '';
+                let sLineNumber = preview ? _.pad((parseInt(i) + 1), nPaddingLength, ' ') : '';
 
                 let sModifiedLine = aModifiedLines[i];
                 if (sModifiedLine !== false) {
                     if (!_.isNil(sModifiedLine) && aOriginalLines[i] !== sModifiedLine) {
-                        sModifiedLine = _previewModifiedLine(sModifiedLine, sLineNumber, aOriginalLines[i], bPreview);
+                        sModifiedLine = _previewModifiedLine(sModifiedLine, sLineNumber, aOriginalLines[i], preview);
                         sModifiedFileContent += sModifiedLine + '\n';
                     } else {
-                        aOriginalLines[i] = _previewLineNumber(sLineNumber, aOriginalLines[i], bPreview);
-                        if (!bPreview || bPreviewUnchangedLines) {
+                        aOriginalLines[i] = _previewLineNumber(sLineNumber, aOriginalLines[i], preview);
+                        if (!preview || previewUnchangedLines) {
                             sModifiedFileContent += aOriginalLines[i] + '\n';
                         }
                     }
                 } else {
-                    sModifiedFileContent = _previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], bPreview);
+                    sModifiedFileContent = _previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], preview);
                 }
             }
         }
@@ -767,7 +772,7 @@ function _handleFile(sFilePath, aHandler, bOpt) {
      */
     function _writeFile() {
         sModifiedFileContent = _.replaceLastOccurrence(sModifiedFileContent, '\n');
-        if (bPreview) {
+        if (preview) {
             console.log('\n[INFO] Reading - \'' + sFilePath + '\'');
             console.log('\n' + sModifiedFileContent);
         } else {
@@ -801,7 +806,7 @@ function _handleFile(sFilePath, aHandler, bOpt) {
         }
         bFileChanged = (_applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
         sModifiedFileContent = '';
-        _applyChanges(aLinesCopy, aModifiedLines, bPreview);
+        _applyChanges(aLinesCopy, aModifiedLines, preview);
     }
 
     if (bFileChanged) {
@@ -893,6 +898,7 @@ let aPredefinedHandler = {
 };
 
 // /////////////////////////////////////////////////////////////////// //
+
 
 export const rstring = {
     handleFile: _handleFile,
