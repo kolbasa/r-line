@@ -529,8 +529,7 @@ let DELETED_INDICATOR = ' D ';
  * @param {object=} options
  * @param {boolean=} options.preview
  * @param {boolean=} options.showSpaces
- * @param {boolean=} options.previewDeletedLines
- * @param {boolean=} options.previewOriginalLines
+ * @param {boolean=} options.hideOriginalLines
  * @param {boolean=} options.previewUnchangedLines
  */
 function _handleFile(sFilePath, aHandler, options) {
@@ -540,13 +539,15 @@ function _handleFile(sFilePath, aHandler, options) {
         return;
     }
 
+    options = options || {};
+
     let sModifiedFileContent = '';
 
-    let preview = _.isNil(options) ? false : options.preview;
-    let showSpaces = _.isNil(options) ? false : options.showSpaces;
-    let previewDeletedLines = _.isNil(options) ? false : options.previewDeletedLines;
-    let previewOriginalLine = _.isNil(options) ? true : options.previewOriginalLines;
-    let previewUnchangedLines = _.isNil(options) ? true : options.previewUnchangedLines;
+    let preview = options.preview;
+    let showSpaces = options.showSpaces;
+    let previewDeletedLines = true;
+    let previewOriginalLine = !options.hideOriginalLines;
+    let previewUnchangedLines = options.previewUnchangedLines;
 
     if (!Array.isArray(aHandler)) {
         aHandler = [aHandler];
@@ -773,10 +774,12 @@ function _handleFile(sFilePath, aHandler, options) {
     function _writeFile() {
         sModifiedFileContent = _.replaceLastOccurrence(sModifiedFileContent, '\n');
         if (preview) {
-            console.log('\n[INFO] Reading - \'' + sFilePath + '\'');
-            console.log('\n' + sModifiedFileContent);
+            console.log('[INFO] Reading file: \'' + sFilePath + '\'');
+            if (sModifiedFileContent != null && sModifiedFileContent.trim().length > 0){
+                console.log('\n' + sModifiedFileContent);
+            }
         } else {
-            console.log('[INFO] Replacing file - \'' + sFilePath + '\'');
+            console.log('[INFO] Replacing file: \'' + sFilePath + '\'');
             fs.writeFileSync(sFilePath, sModifiedFileContent, 'utf-8');
         }
     }
