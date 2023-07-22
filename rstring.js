@@ -161,6 +161,61 @@ const _ = {
                        _.previewNewLines(modifiedLine, nPaddingLength, hideOriginalLines);
 
         return modifiedLine;
+    },
+
+    /**
+     *
+     * @param sModifiedFileContent
+     * @param sLineNumber
+     * @param sLine
+     * @param showSpaces
+     * @returns {*}
+     */
+    previewDeletedLine: (sModifiedFileContent, sLineNumber, sLine, showSpaces) => {
+        if (showSpaces) {
+            sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
+        }
+        return sLineNumber + DELETED_INDICATOR + CHANGED_INDICATOR + sLine + '\n';
+    },
+
+    /**
+     * @param aOriginalLines
+     * @param aModifiedLines
+     * @param options
+     */
+    applyChanges: (aOriginalLines, aModifiedLines, options) => {
+        options = options || {};
+
+        let sModifiedFileContent = '';
+
+        for (let i in aModifiedLines) {
+            if (aModifiedLines.hasOwnProperty(i)) {
+                let nPaddingLength = aOriginalLines.length.toString().length;
+                let sLineNumber = options.preview ? _.padPage((parseInt(i) + 1), nPaddingLength, ' ') : '';
+
+                let sModifiedLine = aModifiedLines[i];
+                if (sModifiedLine !== false) {
+                    if (sModifiedLine != null && aOriginalLines[i] !== sModifiedLine) {
+                        if (options.preview) {
+                            sModifiedLine = _.previewModifiedLine(aOriginalLines[i], sModifiedLine, sLineNumber,
+                                options.hideOriginalLines, options.showSpaces);
+                        }
+                        sModifiedFileContent += sModifiedLine + '\n';
+                    } else {
+                        if (options.preview) {
+                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], options.preview, options.showSpaces);
+                        }
+                        if (!options.preview || options.previewUnchangedLines) {
+                            sModifiedFileContent += aOriginalLines[i] + '\n';
+                        }
+                    }
+                } else if (options.preview) {
+                    sModifiedFileContent += _.previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], options.showSpaces);
+                }
+            }
+        }
+
+        return sModifiedFileContent;
     }
 
 };
@@ -244,63 +299,6 @@ function file(filePath, onLine, options) {
 
     /**
      *
-     * @param sModifiedFileContent
-     * @param sLineNumber
-     * @param sLine
-     * @param preview
-     * @returns {*}
-     */
-    function previewDeletedLine(sModifiedFileContent, sLineNumber, sLine, preview) {
-        if (preview) {
-            if (options.showSpaces) {
-                sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
-            }
-            sModifiedFileContent += sLineNumber + DELETED_INDICATOR +
-                                    CHANGED_INDICATOR + sLine + '\n';
-        }
-        return sModifiedFileContent;
-    }
-
-    /**
-     *
-     * @param aOriginalLines
-     * @param aModifiedLines
-     * @param preview
-     */
-    function applyChanges(aOriginalLines, aModifiedLines, preview) {
-
-        for (let i in aModifiedLines) {
-            if (aModifiedLines.hasOwnProperty(i)) {
-                let nPaddingLength = aOriginalLines.length.toString().length;
-                let sLineNumber = preview ? _.padPage((parseInt(i) + 1), nPaddingLength, ' ') : '';
-
-                let sModifiedLine = aModifiedLines[i];
-                if (sModifiedLine !== false) {
-                    if (sModifiedLine != null && aOriginalLines[i] !== sModifiedLine) {
-                        if (preview) {
-                            sModifiedLine = _.previewModifiedLine(aOriginalLines[i], sModifiedLine, sLineNumber,
-                                options.hideOriginalLines, options.showSpaces);
-                        }
-                        sModifiedFileContent += sModifiedLine + '\n';
-                    } else {
-                        if (preview) {
-                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], preview);
-                        }
-                        if (!preview || options.previewUnchangedLines) {
-                            sModifiedFileContent += aOriginalLines[i] + '\n';
-                        }
-                    }
-                } else {
-                    sModifiedFileContent = previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], preview);
-                }
-            }
-        }
-
-        return sModifiedFileContent;
-    }
-
-    /**
-     *
      * @param aModifiedLines
      * @param aLines
      * @param nIndex
@@ -365,9 +363,8 @@ function file(filePath, onLine, options) {
         aModifiedLines = pipeToLineHandler(onLine, aModifiedLines, oLines, nLineIndex);
     }
 
-    let bFileChanged = (applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
-    sModifiedFileContent = '';
-    applyChanges(aLinesCopy, aModifiedLines, options.preview);
+    let bFileChanged = (_.applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
+    sModifiedFileContent = _.applyChanges(aLinesCopy, aModifiedLines, options);
 
     if (options.preview) {
         console.log('[INFO] Reading file: \'' + filePath + '\'');
