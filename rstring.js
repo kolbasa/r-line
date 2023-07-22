@@ -5,6 +5,7 @@ import fs from 'fs';
 const TAB = ' ▸  ';
 const SPACE = '·';
 
+const N = '\n';
 const TAB_REGEX = new RegExp('\\t', 'g');
 const SPACES_REGEX = new RegExp(' ', 'g');
 
@@ -16,7 +17,7 @@ const _ = {
      * @returns {Array}
      */
     getMatchIndexes: (str, strToFind) => {
-        let indices = [];
+        const indices = [];
         if (!utils.isString(strToFind) || strToFind.length === 0) {
             return indices;
         }
@@ -50,14 +51,13 @@ const _ = {
      * @returns {string}
      */
     replaceOccurrenceOfString: (str, strToReplace, replacement, isFirst) => {
-        let indices = _.getMatchIndexes(str, strToReplace);
+        const indices = _.getMatchIndexes(str, strToReplace);
         if (indices.length === 0) {
             return str;
         }
-        let replaceFromIndex = isFirst ? indices[0] : indices[indices.length - 1];
-        return _.replaceBetweenIndices(str, replacement || '',
-            replaceFromIndex, replaceFromIndex + strToReplace.length
-        );
+        const startIndex = isFirst ? indices[0] : indices[indices.length - 1];
+        const endIndex = startIndex + strToReplace.length;
+        return _.replaceBetweenIndices(str, replacement || '', startIndex, endIndex);
     },
 
     /**
@@ -76,19 +76,18 @@ const _ = {
     },
 
     /**
+     * @param {string} lineNumber
+     * @param {string} line
+     * @param {boolean} showSpaces
      *
-     * @param sLineNumber
-     * @param sLine
-     * @param showSpaces
-     * @returns {*}
+     * @returns {string}
      */
-    previewLineNumber: (sLineNumber, sLine, showSpaces) => {
+    previewLineNumber: (lineNumber, line, showSpaces) => {
         if (showSpaces) {
-            sLine = utils.replaceTabs(utils.replaceSpaces(sLine, SPACE), TAB);
+            line = utils.replaceTabs(utils.replaceSpaces(line, SPACE), TAB);
         }
-        return sLineNumber + ' '.repeat(3) + START_INDICATOR + sLine;
+        return lineNumber + ' '.repeat(3) + START_INDICATOR + line;
     },
-
 
     /**
      * @param {number} number
@@ -107,20 +106,19 @@ const _ = {
     /**
      * @param {string} line
      * @param {number} paddingLength
-     * @param {boolean} hideOriginalLines
+     * @param {string} lineIndicator
      *
      * @returns {string}
      */
-    previewNewLines: (line, paddingLength, hideOriginalLines) => {
-        let lines = line.split('\n');
-        if (lines.length > 0) {
-            line = lines[0];
-            for (let i = 1; i < lines.length; i++) {
-                line += '\n' + ' '.repeat(paddingLength) +
-                        MODIFIED_INDICATOR + (
-                            !hideOriginalLines ? ORIGINAL_INDICATOR_3 : CHANGED_INDICATOR
-                        ) + lines[i];
-            }
+    previewNewLines: (line, paddingLength, lineIndicator) => {
+        let lines = line.split(N);
+        if (lines.length === 0) {
+            return line;
+        }
+        line = lines[0];
+        for (let i = 1; i < lines.length; i++) {
+            line += N + ' '.repeat(paddingLength) + MODIFIED_INDICATOR;
+            line += lineIndicator + lines[i];
         }
         return line;
     },
@@ -129,38 +127,48 @@ const _ = {
      * @param {string} originalLine
      * @param {string} modifiedLine
      * @param {string} lineNumber
-     * @param {boolean} hideOriginalLines
+     * @param {boolean} showSpaces
+     *
+     * @returns {{original: string, lineIndicator: string}}
+     */
+    previewOriginalLine: (originalLine, modifiedLine, lineNumber, showSpaces) => {
+        if (showSpaces) {
+            originalLine = utils.replaceTabs(utils.replaceSpaces(originalLine, SPACE), TAB);
+        }
+        let hasNewLines = modifiedLine.split(N);
+        return {
+            original: lineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
+            lineIndicator: hasNewLines ? ORIGINAL_INDICATOR_2 : ORIGINAL_INDICATOR_3
+        };
+    },
+
+    /**
+     * @param {string} originalLine
+     * @param {string} modifiedLine
+     * @param {string} lineNumber
      * @param {boolean} showSpaces
      *
      * @returns {string}
      */
-    previewModifiedLine: (originalLine, modifiedLine, lineNumber, hideOriginalLines, showSpaces) => {
-        let original = '';
-        let lineIndicator = CHANGED_INDICATOR;
-        let hasNewLines = modifiedLine.split('\n');
+    previewModifiedLine: function (originalLine, modifiedLine, lineNumber, showSpaces) {
+        let conf = {
+            original: '',
+            lineIndicator: CHANGED_INDICATOR
+        };
 
-        if (!hideOriginalLines) {
-            if (showSpaces) {
-                originalLine = utils.replaceTabs(utils.replaceSpaces(originalLine, SPACE), TAB);
-            }
-            original = lineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + '\n';
-            if (hasNewLines) {
-                lineIndicator = ORIGINAL_INDICATOR_2;
-            } else {
-                lineIndicator = ORIGINAL_INDICATOR_3;
-            }
+        if (originalLine != null) {
+            conf = _.previewOriginalLine(...arguments);
         }
 
         if (showSpaces) {
             modifiedLine = utils.replaceTabs(utils.replaceSpaces(modifiedLine, SPACE), TAB);
         }
 
-        let nPaddingLength = lineNumber.toString().length;
-        modifiedLine = original + (!hideOriginalLines ? ' '.repeat(nPaddingLength) : lineNumber) +
-                       MODIFIED_INDICATOR + lineIndicator +
-                       _.previewNewLines(modifiedLine, nPaddingLength, hideOriginalLines);
+        const paddingLength = lineNumber.toString().length;
+        const newLines = _.previewNewLines(modifiedLine, paddingLength, conf.lineIndicator);
 
-        return modifiedLine;
+        return conf.original + (originalLine ? ' '.repeat(paddingLength) : lineNumber) +
+               MODIFIED_INDICATOR + conf.lineIndicator + newLines;
     },
 
     /**
@@ -175,7 +183,7 @@ const _ = {
         if (showSpaces) {
             sLine = utils.replaceTabs(utils.replaceSpaces(sLine, SPACE), TAB);
         }
-        return sLineNumber + DELETED_INDICATOR + CHANGED_INDICATOR + sLine + '\n';
+        return sLineNumber + DELETED_INDICATOR + CHANGED_INDICATOR + sLine + N;
     },
 
     /**
@@ -197,16 +205,16 @@ const _ = {
                 if (sModifiedLine !== false) {
                     if (sModifiedLine != null && aOriginalLines[i] !== sModifiedLine) {
                         if (options.preview) {
-                            sModifiedLine = _.previewModifiedLine(aOriginalLines[i], sModifiedLine, sLineNumber,
-                                options.hideOriginalLines, options.showSpaces);
+                            const originalLine = options.hideOriginalLines ? null : aOriginalLines[i];
+                            sModifiedLine = _.previewModifiedLine(originalLine, sModifiedLine, sLineNumber, options.showSpaces);
                         }
-                        sModifiedFileContent += sModifiedLine + '\n';
+                        sModifiedFileContent += sModifiedLine + N;
                     } else {
                         if (options.preview) {
-                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], options.preview, options.showSpaces);
+                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], options.showSpaces);
                         }
                         if (!options.preview || options.previewUnchangedLines) {
-                            sModifiedFileContent += aOriginalLines[i] + '\n';
+                            sModifiedFileContent += aOriginalLines[i] + N;
                         }
                     }
                 } else if (options.preview) {
@@ -228,9 +236,7 @@ const _ = {
     filterLines: (aModifiedLines, aLines, nIndex) => {
         let oLines = {};
         if (aModifiedLines.length > (nIndex)) {
-            if (aModifiedLines[nIndex] != null) {
-                oLines[nIndex + 1] = aModifiedLines[nIndex];
-            }
+            oLines[nIndex + 1] = aModifiedLines[nIndex];
         }
         return oLines;
     },
@@ -238,22 +244,24 @@ const _ = {
     /**
      *
      * @param onLine
-     * @param aModifiedLines
+     * @param modifiedLines
      * @param oLines
      * @param nIndex
      * @returns {*}
      */
-    pipeToLineHandler: (onLine, aModifiedLines, oLines, nIndex) => {
-        if (Object.keys(oLines).length > 0) {
-            let line = oLines[Object.keys(oLines)[0]];
-            if (line !== false) {
-                let sResult = onLine(line, (nIndex + 1));
-                if (sResult != null) {
-                    aModifiedLines[nIndex] = sResult;
-                }
-            }
+    pipeToLineHandler: (onLine, modifiedLines, oLines, nIndex) => {
+        if (Object.keys(oLines).length === 0) {
+            return modifiedLines;
         }
-        return aModifiedLines;
+        let line = oLines[Object.keys(oLines)[0]];
+        if (line === false) {
+            return modifiedLines;
+        }
+        let sResult = onLine(line, (nIndex + 1));
+        if (sResult != null) {
+            modifiedLines[nIndex] = sResult;
+        }
+        return modifiedLines;
     },
 
     /**
@@ -262,8 +270,41 @@ const _ = {
      * @returns {void}
      */
     writeFile: (filePath, content) => {
-        console.log('[INFO] Replacing file: \'' + filePath + '\'');
         fs.writeFileSync(filePath, content, 'utf-8');
+    },
+
+    /**
+     * @param {boolean} contentChanged
+     * @param {string} filePath
+     * @param {string} previewContent
+     *
+     * @returns {void}
+     */
+    logPreview: (contentChanged, filePath, previewContent) => {
+        if (contentChanged) {
+            console.log(`[INFO] Preview: '${filePath}'${N}${N}${previewContent}`);
+        } else {
+            console.log(`[INFO] Nothing changed in file: '${filePath}'`);
+        }
+    },
+
+    /**
+     * @param {boolean} contentChanged
+     * @param {string} filePath
+     * @param {string} previewContent
+     * @param {boolean} preview
+     *
+     * @returns {void}
+     */
+    logProgress: function (contentChanged, filePath, previewContent, preview) {
+        if (preview) {
+            return _.logPreview(...arguments);
+        }
+        if (contentChanged) {
+            console.log(`[INFO] Replacing file: '${filePath}'`);
+        } else {
+            console.log(`[INFO] Nothing changed in file: '${filePath}'`);
+        }
     }
 
 };
@@ -327,6 +368,7 @@ const DELETED_INDICATOR = ' D ';
  * @param {boolean=} options.showSpaces
  * @param {boolean=} options.hideOriginalLines
  * @param {boolean=} options.previewUnchangedLines
+ * @param {boolean=} options.doNotLogUnchanged
  *
  * @returns {void}
  */
@@ -334,7 +376,7 @@ function file(filePath, onLineCallback, options) {
     options = options || {};
 
     if (!_.isValidFile(filePath)) {
-        throw new Error('[ERROR] Not a valid file: \'' + filePath + '\'!');
+        throw new Error(`[ERROR] Not a valid file: '${filePath}'!`);
     }
 
     if (onLineCallback == null || typeof onLineCallback !== 'function') {
@@ -342,7 +384,7 @@ function file(filePath, onLineCallback, options) {
     }
 
     const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+    const lines = content.split(N);
 
     let modifiedLines = lines.slice(0);
 
@@ -354,22 +396,15 @@ function file(filePath, onLineCallback, options) {
     let contentChanged = (_.applyChanges(lines, modifiedLines).trim() !== content.trim());
     let newContent = _.applyChanges(lines, modifiedLines, options);
 
-    if (options.preview) {
-        console.log('[INFO] Reading file: \'' + filePath + '\'');
-    }
+    newContent = utils.replaceLastOccurrence(newContent, N);
 
-    newContent = utils.replaceLastOccurrence(newContent, '\n');
-
-    if (contentChanged && options.preview) {
-        if (newContent != null && newContent.trim().length > 0) {
-            console.log('\n' + newContent);
-        }
+    if (contentChanged || !options.doNotLogUnchanged) {
+        _.logProgress(contentChanged, filePath, newContent, options.preview);
     }
 
     if (!options.preview && contentChanged) {
         _.writeFile(filePath, newContent);
     }
-
 }
 
 if (global.describe != null) { // global mocha method

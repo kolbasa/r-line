@@ -18,7 +18,8 @@ const SPACE = '·';
 const TEXT_FILE = 'ipsum.txt';
 const CONTENT = A + N + B + N + C;
 const REPLACING_FILE_LOG = `[INFO] Replacing file: '${TEXT_FILE}'` + N;
-const READING_FILE_LOG = `[INFO] Reading file: '${TEXT_FILE}'` + N;
+const NOTHING_CHANGED_IN_FILE_LOG = `[INFO] Nothing changed in file: '${TEXT_FILE}'` + N;
+const READING_FILE_LOG = `[INFO] Preview: '${TEXT_FILE}'` + N;
 
 let stdout = '';
 const consoleLogOriginal = console.log;
@@ -75,6 +76,7 @@ describe('rstring.js', () => {
      * @param {boolean=} options.showSpaces
      * @param {boolean=} options.hideOriginalLines
      * @param {boolean=} options.previewUnchangedLines
+     * @param {boolean=} options.doNotLogUnchanged
      *
      * @param {boolean=} options.resume The default text file should not be reset
      * @param {string=} options.content If you want to replace the default content of the test text file.
@@ -123,12 +125,6 @@ describe('rstring.js', () => {
             lines.push(line);
         });
         expect(lines).to.deep.equal(CONTENT.split(N));
-    });
-
-    it('no changes', () => {
-        changeLines({});
-        expect(readTextFile()).to.equal(CONTENT);
-        expect(stdout).to.be.empty;
     });
 
     it('multiple change runs', () => {
@@ -199,7 +195,7 @@ describe('rstring.js', () => {
 
     describe('empty file', () => {
 
-        it('read only', () => {
+        it('reading content', () => {
             mock({[TEXT_FILE]: ''});
 
             let lines = [];
@@ -211,8 +207,6 @@ describe('rstring.js', () => {
             expect(changedContent).be.empty;
             expect(changedContent.split(N)).to.deep.equal(['']);
             expect(lines).to.deep.equal(['']);
-
-            expect(stdout).to.be.empty;
         });
 
         it('adding lines', () => {
@@ -228,14 +222,36 @@ describe('rstring.js', () => {
 
     describe('preview', () => {
 
-        it('nothing changed', () => {
-            changeLines({}, {preview: true});
-            expectPreviewContent();
+        describe('log', () => {
+
+            it('changed', () => {
+                changeLines({A: D}, {preview: true, doNotLogUnchanged: true});
+                expect(stdout).to.equal(
+                    READING_FILE_LOG + N +
+                    '1   ┌ A' + N +
+                    '  M └▷D' + N
+                );
+            });
+
+            describe('nothing changed', () => {
+
+                it('default', () => {
+                    changeLines({}, {preview: true});
+                    expect(stdout).to.equal(NOTHING_CHANGED_IN_FILE_LOG);
+                });
+
+                it('do not log unchanged', () => {
+                    changeLines({}, {preview: true, doNotLogUnchanged: true});
+                    expect(stdout).to.be.empty;
+                });
+
+            });
+
         });
 
         describe('change', () => {
 
-            describe('standard mode', () => {
+            describe('default', () => {
 
                 it('first line', () => {
                     changeLines({A: D}, {preview: true});
@@ -490,7 +506,7 @@ describe('rstring.js', () => {
 
         describe('delete', () => {
 
-            describe('standard mode', () => {
+            describe('default', () => {
 
                 it('first line', () => {
                     changeLines({A: 0}, {preview: true});
@@ -562,7 +578,7 @@ describe('rstring.js', () => {
 
         describe('mix of change and delete', () => {
 
-            it('standard mode', () => {
+            it('default', () => {
                 changeLines({A: D, B: 0}, {preview: true});
                 expectPreviewContent(
                     '1   ┌ A' + N +
@@ -629,6 +645,29 @@ describe('rstring.js', () => {
             expectChangedContent(D + N + B + N + D);
         });
 
+        describe('log', () => {
+
+            it('changed', () => {
+                changeLines({A: D}, {doNotLogUnchanged: true});
+                expect(stdout).to.equal(REPLACING_FILE_LOG);
+            });
+
+            describe('nothing changed', () => {
+
+                it('default', () => {
+                    changeLines({});
+                    expect(stdout).to.equal(NOTHING_CHANGED_IN_FILE_LOG);
+                });
+
+                it('do not log unchanged', () => {
+                    changeLines({}, {doNotLogUnchanged: true});
+                    expect(stdout).to.be.empty;
+                });
+
+            });
+
+        });
+
         describe('special cases', () => {
 
             it('should not trim line', () => {
@@ -667,7 +706,8 @@ describe('rstring.js', () => {
 
             describe('first line', () => {
 
-                it.skip('start', () => {
+                it('start', () => {
+                    stopConsoleLogRecording();
                     changeLines({A: N + A});
                     expectChangedContent(N + A + N + B + N + C);
                 });
