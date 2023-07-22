@@ -174,7 +174,7 @@ const _ = {
      * @returns {string}
      */
     previewDeletedLine: (lineNumber, line, showSpaces) => {
-        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + (showSpaces ? _.showSpaces(line) : line) + N;
+        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
     },
 
     /**
@@ -187,33 +187,29 @@ const _ = {
     preview: (originalLines, modifiedLines, options) => {
         options = options || {};
 
-        let modifiedFileContent = '';
-
-        for (let i in modifiedLines) {
-            if (modifiedLines.hasOwnProperty(i)) {
+        return modifiedLines
+            .map((line, i) => {
                 let nPaddingLength = originalLines.length.toString().length;
-                let sLineNumber = _.padPage((parseInt(i) + 1), nPaddingLength, ' ');
+                let sLineNumber = _.padPage((i + 1), nPaddingLength, ' ');
 
                 let sModifiedLine = modifiedLines[i];
                 if (sModifiedLine !== false) {
                     if (sModifiedLine != null && originalLines[i] !== sModifiedLine) {
                         const originalLine = options.hideOriginalLines ? null : originalLines[i];
                         sModifiedLine = _.previewModifiedLine(originalLine, sModifiedLine, sLineNumber, options.showSpaces);
-                        modifiedFileContent += sModifiedLine + N;
+                        return sModifiedLine;
                     } else {
                         originalLines[i] = _.previewLineNumber(sLineNumber, originalLines[i], options.showSpaces);
                         if (options.previewUnchangedLines) {
-                            modifiedFileContent += originalLines[i] + N;
+                            return originalLines[i];
                         }
                     }
                 } else {
-                    modifiedFileContent += _.previewDeletedLine(sLineNumber, originalLines[i], options.showSpaces);
+                    return _.previewDeletedLine(sLineNumber, originalLines[i], options.showSpaces);
                 }
-            }
-        }
-
-        modifiedFileContent = utils.replaceLastOccurrence(modifiedFileContent, N)
-        return modifiedFileContent;
+            })
+            .filter(utils.isString)
+            .join(N);
     },
 
     /**
