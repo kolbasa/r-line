@@ -2,12 +2,14 @@
 
 import fs from 'fs';
 
+const S = ' ';
+const N = '\n';
 const TAB = ' ▸  ';
 const SPACE = '·';
+const ENCODING = 'utf-8';
 
-const N = '\n';
 const TAB_REGEX = new RegExp('\\t', 'g');
-const SPACES_REGEX = new RegExp(' ', 'g');
+const SPACES_REGEX = new RegExp(S, 'g');
 
 const _ = {
     /**
@@ -83,7 +85,7 @@ const _ = {
      * @returns {string}
      */
     previewLineNumber: (lineNumber, line, showSpaces) => {
-        return lineNumber + (' ').repeat(3) + START_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
+        return lineNumber + S.repeat(3) + START_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
     },
 
     /**
@@ -95,7 +97,7 @@ const _ = {
      */
     padPage: (number, width, prefix) => {
         prefix = prefix || '0';
-        const pageString = number + '';
+        const pageString = number.toString();
         const paddedPage = new Array(width - pageString.length + 1).join(prefix) + number;
         return pageString.length >= width ? number : paddedPage;
     },
@@ -122,7 +124,7 @@ const _ = {
         }
         line = lines[0];
         for (let i = 1; i < lines.length; i++) {
-            line += N + (' ').repeat(paddingLength) + MODIFIED_INDICATOR;
+            line += N + S.repeat(paddingLength) + MODIFIED_INDICATOR;
             line += changeIndicator + lines[i];
         }
         return line;
@@ -140,7 +142,7 @@ const _ = {
         originalLine = showSpaces ? _.showSpaces(originalLine) : originalLine;
         const hasNewLines = modifiedLine.split(N);
         return {
-            originalLine: lineNumber + (' ').repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
+            originalLine: lineNumber + S.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
             changeIndicator: hasNewLines ? ORIGINAL_INDICATOR_2 : ORIGINAL_INDICATOR_3
         };
     },
@@ -162,7 +164,7 @@ const _ = {
         const paddingLength = lineNumber.toString().length;
         const content = _.previewContent(modifiedLine, paddingLength, conf.changeIndicator);
 
-        lineNumber = originalLine ? (' ').repeat(paddingLength) : lineNumber;
+        lineNumber = originalLine ? S.repeat(paddingLength) : lineNumber;
         return (conf.originalLine || '') + lineNumber + MODIFIED_INDICATOR + conf.changeIndicator + content;
     },
 
@@ -189,45 +191,20 @@ const _ = {
 
         return modifiedLines
             .map((line, i) => {
-                let nPaddingLength = originalLines.length.toString().length;
-                let sLineNumber = _.padPage((i + 1), nPaddingLength, ' ');
+                let lineNumber = _.padPage((i + 1), originalLines.length.toString().length, S);
 
-                let sModifiedLine = modifiedLines[i];
-                if (sModifiedLine !== false) {
-                    if (sModifiedLine != null && originalLines[i] !== sModifiedLine) {
-                        const originalLine = options.hideOriginalLines ? null : originalLines[i];
-                        sModifiedLine = _.previewModifiedLine(originalLine, sModifiedLine, sLineNumber, options.showSpaces);
-                        return sModifiedLine;
-                    } else {
-                        originalLines[i] = _.previewLineNumber(sLineNumber, originalLines[i], options.showSpaces);
-                        if (options.previewUnchangedLines) {
-                            return originalLines[i];
-                        }
-                    }
-                } else {
-                    return _.previewDeletedLine(sLineNumber, originalLines[i], options.showSpaces);
+                if (modifiedLines[i] === false) {
+                    return _.previewDeletedLine(lineNumber, originalLines[i], options.showSpaces);
                 }
-            })
-            .filter(utils.isString)
-            .join(N);
-    },
 
-    /**
-     * @param {string[]} originalLines
-     * @param {string[]} modifiedLines
-     *
-     * @returns {string}
-     */
-    applyChanges: (originalLines, modifiedLines) => {
-        return modifiedLines
-            .map((line, i) => {
-                const modifiedLine = modifiedLines[i];
-                if (modifiedLine === false) {
-                    return false;
+                if (originalLines[i] !== modifiedLines[i]) {
+                    const originalLine = options.hideOriginalLines ? null : originalLines[i];
+                    modifiedLines[i] = _.previewModifiedLine(originalLine, modifiedLines[i], lineNumber, options.showSpaces);
+                    return modifiedLines[i];
                 }
-                if (modifiedLine != null && originalLines[i] !== modifiedLine) {
-                    return modifiedLine;
-                } else {
+
+                originalLines[i] = _.previewLineNumber(lineNumber, originalLines[i], options.showSpaces);
+                if (options.previewUnchangedLines) {
                     return originalLines[i];
                 }
             })
@@ -237,40 +214,15 @@ const _ = {
 
     /**
      * @param {string[]} modifiedLines
-     * @param {number} index
-     *
-     * @returns {Object.<string, string>}
-     */
-    filterLines: (modifiedLines, index) => {
-        let lines = {};
-        if (modifiedLines.length > index) {
-            lines[index + 1] = modifiedLines[index];
-        }
-        return lines;
-    },
-
-    /**
-     *
      * @param {function} onLine
-     * @param {string[]} modifiedLines
-     * @param {Object.<string, string>} lines
-     * @param {number} index
      *
      * @returns {string[]}
      */
-    pipeToLineHandler: (onLine, modifiedLines, lines, index) => {
-        if (Object.keys(lines).length === 0) {
-            return modifiedLines;
-        }
-        let line = lines[Object.keys(lines)[0]];
-        if (line === false) {
-            return modifiedLines;
-        }
-        let result = onLine(line, (index + 1));
-        if (result != null) {
-            modifiedLines[index] = result;
-        }
-        return modifiedLines;
+    applyUserChanges: (modifiedLines, onLine) => {
+        return modifiedLines.map((line, index) => {
+            const change = onLine(line, index + 1);
+            return change == null ? line : change;
+        });
     },
 
     /**
@@ -280,7 +232,15 @@ const _ = {
      * @returns {void}
      */
     writeFile: (filePath, content) => {
-        fs.writeFileSync(filePath, content, 'utf-8');
+        fs.writeFileSync(filePath, content, ENCODING);
+    },
+
+    /**
+     * @param {string} filePath
+     * @returns {string}
+     */
+    readFile: (filePath) => {
+        return fs.readFileSync(filePath, ENCODING).toString();
     },
 
     /**
@@ -314,6 +274,22 @@ const _ = {
             console.log(`[INFO] Replacing file: '${filePath}'`);
         } else {
             console.log(`[INFO] Nothing changed in file: '${filePath}'`);
+        }
+    },
+
+    /**
+     * @param {string} filePath
+     * @param {function} onLineCallback
+     *
+     * @returns {void}
+     */
+    validate: (filePath, onLineCallback) => {
+        if (!_.isValidFile(filePath)) {
+            throw new Error(`[ERROR] Not a valid file: '${filePath}'!`);
+        }
+
+        if (onLineCallback == null || typeof onLineCallback !== 'function') {
+            throw new Error('[ERROR] no callback function given!');
         }
     }
 
@@ -385,35 +361,22 @@ const DELETED_INDICATOR = ' D ';
 function file(filePath, onLineCallback, options) {
     options = options || {};
 
-    if (!_.isValidFile(filePath)) {
-        throw new Error(`[ERROR] Not a valid file: '${filePath}'!`);
+    _.validate(filePath, onLineCallback);
+
+    const fulltext = _.readFile(filePath);
+
+    const lines = fulltext.split(N);
+    const linesChanged = _.applyUserChanges(lines.slice(0), onLineCallback);
+
+    const fulltextChanged = linesChanged.filter(utils.isString).join(N);
+    const hasChanged = fulltextChanged !== fulltext;
+
+    if (hasChanged || !options.doNotLogUnchanged) {
+        _.logProgress(hasChanged, filePath, _.preview(lines, linesChanged, options), options.preview);
     }
 
-    if (onLineCallback == null || typeof onLineCallback !== 'function') {
-        throw new Error('[ERROR] no callback function given!');
-    }
-
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split(N);
-
-    let modifiedLines = lines.slice(0);
-
-    for (let lineIndex = 0; lineIndex < modifiedLines.length; lineIndex++) {
-        let filteredLines = _.filterLines(modifiedLines, lineIndex);
-        modifiedLines = _.pipeToLineHandler(onLineCallback, modifiedLines, filteredLines, lineIndex);
-    }
-
-    let contentChanged = (_.applyChanges(lines, modifiedLines).trim() !== content.trim());
-    let newContent = options.preview ? _.preview(lines, modifiedLines, options) : _.applyChanges(lines, modifiedLines);
-    // newContent = utils.replaceLastOccurrence(newContent, N);
-
-
-    if (contentChanged || !options.doNotLogUnchanged) {
-        _.logProgress(contentChanged, filePath, newContent, options.preview);
-    }
-
-    if (!options.preview && contentChanged) {
-        _.writeFile(filePath, newContent);
+    if (hasChanged && !options.preview) {
+        _.writeFile(filePath, fulltextChanged);
     }
 }
 
