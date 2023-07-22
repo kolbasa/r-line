@@ -17,7 +17,7 @@ const _ = {
      */
     getMatchIndexes: (str, strToFind) => {
         let indices = [];
-        if (!publicUtils.isString(strToFind) || strToFind.length === 0) {
+        if (!utils.isString(strToFind) || strToFind.length === 0) {
             return indices;
         }
         let index;
@@ -84,7 +84,7 @@ const _ = {
      */
     previewLineNumber: (sLineNumber, sLine, showSpaces) => {
         if (showSpaces) {
-            sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
+            sLine = utils.replaceTabs(utils.replaceSpaces(sLine, SPACE), TAB);
         }
         return sLineNumber + ' '.repeat(3) + START_INDICATOR + sLine;
     },
@@ -141,7 +141,7 @@ const _ = {
 
         if (!hideOriginalLines) {
             if (showSpaces) {
-                originalLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(originalLine, SPACE), TAB);
+                originalLine = utils.replaceTabs(utils.replaceSpaces(originalLine, SPACE), TAB);
             }
             original = lineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + '\n';
             if (hasNewLines) {
@@ -152,7 +152,7 @@ const _ = {
         }
 
         if (showSpaces) {
-            modifiedLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(modifiedLine, SPACE), TAB);
+            modifiedLine = utils.replaceTabs(utils.replaceSpaces(modifiedLine, SPACE), TAB);
         }
 
         let nPaddingLength = lineNumber.toString().length;
@@ -173,7 +173,7 @@ const _ = {
      */
     previewDeletedLine: (sModifiedFileContent, sLineNumber, sLine, showSpaces) => {
         if (showSpaces) {
-            sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
+            sLine = utils.replaceTabs(utils.replaceSpaces(sLine, SPACE), TAB);
         }
         return sLineNumber + DELETED_INDICATOR + CHANGED_INDICATOR + sLine + '\n';
     },
@@ -216,11 +216,59 @@ const _ = {
         }
 
         return sModifiedFileContent;
+    },
+
+    /**
+     *
+     * @param aModifiedLines
+     * @param aLines
+     * @param nIndex
+     * @returns {{}}
+     */
+    filterLines: (aModifiedLines, aLines, nIndex) => {
+        let oLines = {};
+        if (aModifiedLines.length > (nIndex)) {
+            if (aModifiedLines[nIndex] != null) {
+                oLines[nIndex + 1] = aModifiedLines[nIndex];
+            }
+        }
+        return oLines;
+    },
+
+    /**
+     *
+     * @param onLine
+     * @param aModifiedLines
+     * @param oLines
+     * @param nIndex
+     * @returns {*}
+     */
+    pipeToLineHandler: (onLine, aModifiedLines, oLines, nIndex) => {
+        if (Object.keys(oLines).length > 0) {
+            let line = oLines[Object.keys(oLines)[0]];
+            if (line !== false) {
+                let sResult = onLine(line, (nIndex + 1));
+                if (sResult != null) {
+                    aModifiedLines[nIndex] = sResult;
+                }
+            }
+        }
+        return aModifiedLines;
+    },
+
+    /**
+     * @param {string} filePath
+     * @param {string} content
+     * @returns {void}
+     */
+    writeFile: (filePath, content) => {
+        console.log('[INFO] Replacing file: \'' + filePath + '\'');
+        fs.writeFileSync(filePath, content, 'utf-8');
     }
 
 };
 
-const publicUtils = {
+const utils = {
 
     /**
      * @param {*} propToCheck
@@ -273,7 +321,7 @@ const DELETED_INDICATOR = ' D ';
 
 /**
  * @param {string} filePath
- * @param {function} onLine
+ * @param {function} onLineCallback
  * @param {object=} options
  * @param {boolean=} options.preview
  * @param {boolean=} options.showSpaces
@@ -282,108 +330,51 @@ const DELETED_INDICATOR = ' D ';
  *
  * @returns {void}
  */
-function file(filePath, onLine, options) {
+function file(filePath, onLineCallback, options) {
     options = options || {};
 
     if (!_.isValidFile(filePath)) {
-        console.error('[ERROR] Not a valid file: \'' + filePath + '\'!');
-        return;
+        throw new Error('[ERROR] Not a valid file: \'' + filePath + '\'!');
     }
 
-    if (onLine == null || typeof onLine !== 'function') {
-        console.error('[ERROR] no callback function given!');
-        return;
+    if (onLineCallback == null || typeof onLineCallback !== 'function') {
+        throw new Error('[ERROR] no callback function given!');
     }
 
-    let sModifiedFileContent = '';
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
 
-    /**
-     *
-     * @param aModifiedLines
-     * @param aLines
-     * @param nIndex
-     * @returns {{}}
-     */
-    function preselectLines(aModifiedLines, aLines, nIndex) {
-        let oLines = {};
-        if (aModifiedLines.length > (nIndex)) {
-            if (aModifiedLines[nIndex] != null) {
-                oLines[nIndex + 1] = aModifiedLines[nIndex];
-            }
-        }
-        return oLines;
+    let modifiedLines = lines.slice(0);
+
+    for (let lineIndex = 0; lineIndex < modifiedLines.length; lineIndex++) {
+        let filteredLines = _.filterLines(modifiedLines, lines, lineIndex);
+        modifiedLines = _.pipeToLineHandler(onLineCallback, modifiedLines, filteredLines, lineIndex);
     }
 
-    /**
-     *
-     * @param onLine
-     * @param aModifiedLines
-     * @param oLines
-     * @param nIndex
-     * @returns {*}
-     */
-    function pipeToLineHandler(onLine, aModifiedLines, oLines, nIndex) {
-        if (Object.keys(oLines).length > 0) {
-            let line = oLines[Object.keys(oLines)[0]];
-            if (line !== false) {
-                let sResult = onLine(line, (nIndex + 1));
-                if (sResult != null) {
-                    aModifiedLines[nIndex] = sResult;
-                }
-            }
-        }
-        return aModifiedLines;
-    }
-
-    /**
-     *
-     */
-    function writeFile() {
-        sModifiedFileContent = publicUtils.replaceLastOccurrence(sModifiedFileContent, '\n');
-        if (options.preview) {
-            if (sModifiedFileContent != null && sModifiedFileContent.trim().length > 0) {
-                console.log('\n' + sModifiedFileContent);
-            }
-        } else {
-            console.log('[INFO] Replacing file: \'' + filePath + '\'');
-            fs.writeFileSync(filePath, sModifiedFileContent, 'utf-8');
-        }
-    }
-
-    let sFileContent = fs.readFileSync(filePath, 'utf-8');
-
-    let aLines = sFileContent.split('\n');
-    let aLinesCopy = aLines.slice(0);
-
-    let aModifiedLines;
-    aModifiedLines = aLines.slice(0);
-
-    for (let nLineIndex = 0; nLineIndex < aModifiedLines.length; nLineIndex++) {
-        let oLines = preselectLines(aModifiedLines, aLines, nLineIndex);
-        aModifiedLines = pipeToLineHandler(onLine, aModifiedLines, oLines, nLineIndex);
-    }
-
-    let bFileChanged = (_.applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
-    sModifiedFileContent = _.applyChanges(aLinesCopy, aModifiedLines, options);
+    let contentChanged = (_.applyChanges(lines, modifiedLines).trim() !== content.trim());
+    let newContent = _.applyChanges(lines, modifiedLines, options);
 
     if (options.preview) {
         console.log('[INFO] Reading file: \'' + filePath + '\'');
     }
 
-    if (bFileChanged) {
-        writeFile();
+    newContent = utils.replaceLastOccurrence(newContent, '\n');
+
+    if (contentChanged && options.preview) {
+        if (newContent != null && newContent.trim().length > 0) {
+            console.log('\n' + newContent);
+        }
+    }
+
+    if (!options.preview && contentChanged) {
+        _.writeFile(filePath, newContent);
     }
 
 }
 
-if (global.describe != null) {
+if (global.describe != null) { // global mocha method
     // releasing the private methods for testing.
-    Object.keys(_).forEach((x) => {
-        publicUtils[x] = _[x];
-    });
+    Object.keys(_).forEach((x) => utils[x] = _[x]);
 }
 
-export const rstring = {
-    file: file,
-    utils: publicUtils
-};
+export const rstring = {file: file, utils: utils};

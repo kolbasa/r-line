@@ -20,7 +20,7 @@ const CONTENT = A + N + B + N + C;
 const REPLACING_FILE_LOG = `[INFO] Replacing file: '${TEXT_FILE}'` + N;
 const READING_FILE_LOG = `[INFO] Reading file: '${TEXT_FILE}'` + N;
 
-let stdout = '', stderr = '';
+let stdout = '';
 const consoleLogOriginal = console.log;
 const consoleErrorOriginal = console.error;
 
@@ -31,9 +31,6 @@ function startConsoleLogRecording() {
     console.log = (str) => {
         stdout += str + N;
     };
-    console.error = (str) => {
-        stderr += str + N;
-    };
 }
 
 /**
@@ -41,7 +38,6 @@ function startConsoleLogRecording() {
  */
 function resetConsoleLog() {
     stdout = '';
-    stderr = '';
 }
 
 /**
@@ -109,7 +105,6 @@ describe('rstring.js', () => {
     function expectChangedContent(changedContent) {
         expect(readTextFile()).to.equal(changedContent);
         expect(stdout).to.equal(REPLACING_FILE_LOG);
-        expect(stderr).to.be.empty;
     }
 
     /**
@@ -119,7 +114,6 @@ describe('rstring.js', () => {
     function expectPreviewContent(previewContent, content) {
         expect(readTextFile()).to.equal(content || CONTENT);
         expect(stdout).to.equal(READING_FILE_LOG + (previewContent == null ? '' : N + previewContent + N));
-        expect(stderr).to.be.empty;
     }
 
     it('number of lines', () => {
@@ -135,7 +129,6 @@ describe('rstring.js', () => {
         changeLines({});
         expect(readTextFile()).to.equal(CONTENT);
         expect(stdout).to.be.empty;
-        expect(stderr).to.be.empty;
     });
 
     it('multiple change runs', () => {
@@ -145,36 +138,63 @@ describe('rstring.js', () => {
         expectChangedContent(B + N + B + N + C);
     });
 
-    it('file not found error', () => {
-        mock({[TEXT_FILE]: CONTENT});
-
-        const missingFile = 'unknown.txt';
-        let lines = [];
-        rstring.file(missingFile, (line) => {
-            lines.push(line);
-        });
-
-        expect(stdout).to.be.empty;
-        expect(stderr).to.equal(`[ERROR] Not a valid file: '${missingFile}'!` + N);
-        expect(lines).to.be.empty;
-
-        try {
-            fs.readFileSync(missingFile, 'utf-8');
-        } catch (err) {
-            expect(err.message).to.equal(`ENOENT: no such file or directory, open '${missingFile}'`);
-            return;
-        }
-        throw new chai.AssertionError(`File should not exist: '${missingFile}'`);
-    });
-
     it('callback missing', () => {
         mock({[TEXT_FILE]: CONTENT});
-        // noinspection JSCheckFunctionSignatures
-        rstring.file(TEXT_FILE);
+        try {
+            // noinspection JSCheckFunctionSignatures
+            rstring.file(TEXT_FILE);
+        } catch (err) {
+            expect(err.message).to.equal(`[ERROR] no callback function given!`);
+            expect(stdout).to.be.empty;
+            expect(readTextFile()).to.equal(CONTENT);
+            return;
+        }
+        throw new chai.AssertionError('Should have thrown "missing callback" error!');
+    });
 
-        expect(stdout).to.be.empty;
-        expect(stderr).to.equal('[ERROR] no callback function given!' + N);
-        expect(readTextFile()).to.equal(CONTENT);
+    describe('file not found', () => {
+
+        it('error message', () => {
+            mock({[TEXT_FILE]: CONTENT});
+
+            const missingFile = 'unknown.txt';
+            let lines = [];
+
+            try {
+                rstring.file(missingFile, (line) => {
+                    lines.push(line);
+                });
+            } catch (err) {
+                expect(err.message).to.equal(`[ERROR] Not a valid file: '${missingFile}'!`);
+                expect(stdout).to.be.empty;
+                expect(lines).to.be.empty;
+                return;
+            }
+
+            throw new chai.AssertionError('Should have thrown "invalid file" error!');
+        });
+
+        it('file not found error', () => {
+            mock({[TEXT_FILE]: CONTENT});
+            const missingFile = 'unknown.txt';
+            try {
+                rstring.file(missingFile, () => {
+                    //
+                });
+            } catch (err) {
+                //
+            }
+
+            try {
+                fs.readFileSync(missingFile, 'utf-8');
+            } catch (err) {
+                expect(err.message).to.equal(`ENOENT: no such file or directory, open '${missingFile}'`);
+                return;
+            }
+            throw new chai.AssertionError(`File should not exist: '${missingFile}'`);
+        });
+
+
     });
 
     describe('empty file', () => {
@@ -193,7 +213,6 @@ describe('rstring.js', () => {
             expect(lines).to.deep.equal(['']);
 
             expect(stdout).to.be.empty;
-            expect(stderr).to.be.empty;
         });
 
         it('adding lines', () => {
@@ -203,7 +222,6 @@ describe('rstring.js', () => {
 
             expect(readTextFile()).to.equal(CONTENT);
             expect(stdout).to.equal(REPLACING_FILE_LOG);
-            expect(stderr).to.be.empty;
         });
 
     });
