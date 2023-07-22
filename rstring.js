@@ -536,7 +536,7 @@ let DELETED_INDICATOR = ' D ';
 function _handleFile(sFilePath, aHandler, options) {
 
     if (!_.isValidFile(sFilePath)) {
-        console.error('Not a valid file: \'' + sFilePath + '\'');
+        console.error('[ERROR] Not a valid file: \'' + sFilePath + '\'');
         return;
     }
 
