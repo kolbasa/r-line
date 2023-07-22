@@ -2,146 +2,219 @@
 
 import fs from 'fs';
 
-/**
- * @param {String} sToFindSubstringIn
- * @param {String} sSubstringToFind
- *
- * @returns {Array}
- */
-function getMatchIndexes(sToFindSubstringIn, sSubstringToFind) {
-    let nLengthToMatch = sSubstringToFind.length;
-    let anIndices = [];
-    if (!_.isString(sSubstringToFind) || sSubstringToFind.length === 0) {
-        return anIndices;
-    }
-    let nIndex;
-    let nCurrentIndex = 0;
-    while ((nIndex = sToFindSubstringIn.indexOf(sSubstringToFind, nCurrentIndex)) > -1) {
-        anIndices.push(nIndex);
-        nCurrentIndex = nIndex + nLengthToMatch;
-    }
-    return anIndices;
-}
-
-/**
- * @param {String} sToReplaceIn
- * @param {String} sReplacement
- * @param {Number} nStartIndex
- * @param {Number} nEndIndex
- *
- * @returns {String}
- */
-function replaceBetweenIndices(sToReplaceIn, sReplacement, nStartIndex, nEndIndex) {
-    return sToReplaceIn.substring(0, nStartIndex) + sReplacement + sToReplaceIn.substring(nEndIndex);
-}
-
-/**
- * @param {String} sToReplaceIn
- * @param {String} sToReplace
- * @param {String} sReplacement
- * @param {Boolean} bFirst
- *
- * @returns {String}
- */
-function replaceOccurrenceOfString(sToReplaceIn, sToReplace, sReplacement, bFirst) {
-    let anIndices = getMatchIndexes(sToReplaceIn, sToReplace);
-    if (anIndices.length > 0) {
-        let nReplaceFromIndex = bFirst ? anIndices[0] : anIndices[anIndices.length - 1];
-        return replaceBetweenIndices(sToReplaceIn, sReplacement || '',
-            nReplaceFromIndex, nReplaceFromIndex + sToReplace.length);
-    }
-    return sToReplaceIn;
-}
-
 const TAB = ' ▸  ';
 const SPACE = '·';
 
-let TAB_REGEX = new RegExp('\\t', 'g');
-let SPACES_REGEX = new RegExp(' ', 'g');
+const TAB_REGEX = new RegExp('\\t', 'g');
+const SPACES_REGEX = new RegExp(' ', 'g');
 
-let _ = {
-
+const _ = {
     /**
-     * @param {*} obj
+     * @param {string} str
+     * @param {string} strToFind
      *
-     * @returns {Boolean}
+     * @returns {Array}
      */
-    isString: function (obj) {
-        return typeof obj === 'string';
+    getMatchIndexes: (str, strToFind) => {
+        let indices = [];
+        if (!publicUtils.isString(strToFind) || strToFind.length === 0) {
+            return indices;
+        }
+        let index;
+        let currentIndex = 0;
+        while ((index = str.indexOf(strToFind, currentIndex)) > -1) {
+            indices.push(index);
+            currentIndex = index + strToFind.length;
+        }
+        return indices;
     },
 
     /**
-     * @param {String} sToReplaceIn
-     * @param {String} sToReplace
-     * @param {String=} sReplacement
+     * @param {string} str
+     * @param {string} replacement
+     * @param {number} startIndex
+     * @param {number} endIndex
      *
-     * @returns {String}
+     * @returns {string}
      */
-    replaceLastOccurrence: function (sToReplaceIn, sToReplace, sReplacement) {
-        return replaceOccurrenceOfString(sToReplaceIn, sToReplace, sReplacement, false);
+    replaceBetweenIndices: (str, replacement, startIndex, endIndex) => {
+        return str.substring(0, startIndex) + replacement + str.substring(endIndex);
     },
 
     /**
-     * @param {Number} number
-     * @param {Number} nWidth
-     * @param {String} sPrefix
+     * @param {string} str
+     * @param {string} strToReplace
+     * @param {string} replacement
+     * @param {boolean} isFirst
      *
-     * @returns {String}
+     * @returns {string}
      */
-    pad: function pad(number, nWidth, sPrefix) {
-        sPrefix = sPrefix || '0';
-        const _number = number + '';
-        let sPaddedNumber = new Array(nWidth - _number.length + 1).join(sPrefix) + number;
-        return _number.length >= nWidth ? number : sPaddedNumber;
+    replaceOccurrenceOfString: (str, strToReplace, replacement, isFirst) => {
+        let indices = _.getMatchIndexes(str, strToReplace);
+        if (indices.length === 0) {
+            return str;
+        }
+        let replaceFromIndex = isFirst ? indices[0] : indices[indices.length - 1];
+        return _.replaceBetweenIndices(str, replacement || '',
+            replaceFromIndex, replaceFromIndex + strToReplace.length
+        );
     },
 
     /**
-     * @param {String} sReplaceIn
-     * @param {String=} sReplaceWith
-     *
-     * @returns {String}
+     * @param {string} filePath
+     * @returns {boolean}
      */
-    replaceTabs: function (sReplaceIn, sReplaceWith) {
-        return sReplaceIn.replace(TAB_REGEX, sReplaceWith);
-    },
-
-    /**
-     * @param {String} sReplaceIn
-     * @param {String=} sReplaceWith
-     *
-     * @returns {String}
-     */
-    replaceSpaces: function (sReplaceIn, sReplaceWith) {
-        return sReplaceIn.replace(SPACES_REGEX, sReplaceWith);
-    },
-
-    /**
-     * @param {String} sFilePath
-     *
-     * @returns {Boolean}
-     */
-    isValidFile: function (sFilePath) {
+    isValidFile: (filePath) => {
         try {
-            if (fs.lstatSync(sFilePath).isDirectory()) {
+            if (fs.lstatSync(filePath).isDirectory()) {
                 return false;
             }
         } catch (e) {
             return false;
         }
         return true;
+    },
+
+    /**
+     *
+     * @param sLineNumber
+     * @param sLine
+     * @param showSpaces
+     * @returns {*}
+     */
+    previewLineNumber: (sLineNumber, sLine, showSpaces) => {
+        if (showSpaces) {
+            sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
+        }
+        return sLineNumber + ' '.repeat(3) + START_INDICATOR + sLine;
+    },
+
+
+    /**
+     * @param {number} number
+     * @param {number} width
+     * @param {string} prefix
+     *
+     * @returns {string}
+     */
+    padPage: (number, width, prefix) => {
+        prefix = prefix || '0';
+        const pageString = number + '';
+        const paddedPage = new Array(width - pageString.length + 1).join(prefix) + number;
+        return pageString.length >= width ? number : paddedPage;
+    },
+
+    /**
+     * @param {string} line
+     * @param {number} paddingLength
+     * @param {boolean} hideOriginalLines
+     *
+     * @returns {string}
+     */
+    previewNewLines: (line, paddingLength, hideOriginalLines) => {
+        let lines = line.split('\n');
+        if (lines.length > 0) {
+            line = lines[0];
+            for (let i = 1; i < lines.length; i++) {
+                line += '\n' + ' '.repeat(paddingLength) +
+                        MODIFIED_INDICATOR + (
+                            !hideOriginalLines ? ORIGINAL_INDICATOR_3 : CHANGED_INDICATOR
+                        ) + lines[i];
+            }
+        }
+        return line;
+    },
+
+    /**
+     * @param {string} originalLine
+     * @param {string} modifiedLine
+     * @param {string} lineNumber
+     * @param {boolean} hideOriginalLines
+     * @param {boolean} showSpaces
+     *
+     * @returns {string}
+     */
+    previewModifiedLine: (originalLine, modifiedLine, lineNumber, hideOriginalLines, showSpaces) => {
+        let original = '';
+        let lineIndicator = CHANGED_INDICATOR;
+        let hasNewLines = modifiedLine.split('\n');
+
+        if (!hideOriginalLines) {
+            if (showSpaces) {
+                originalLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(originalLine, SPACE), TAB);
+            }
+            original = lineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + '\n';
+            if (hasNewLines) {
+                lineIndicator = ORIGINAL_INDICATOR_2;
+            } else {
+                lineIndicator = ORIGINAL_INDICATOR_3;
+            }
+        }
+
+        if (showSpaces) {
+            modifiedLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(modifiedLine, SPACE), TAB);
+        }
+
+        let nPaddingLength = lineNumber.toString().length;
+        modifiedLine = original + (!hideOriginalLines ? ' '.repeat(nPaddingLength) : lineNumber) +
+                       MODIFIED_INDICATOR + lineIndicator +
+                       _.previewNewLines(modifiedLine, nPaddingLength, hideOriginalLines);
+
+        return modifiedLine;
     }
 
 };
 
-// /////////////////////////////////////////////////////////////////// //
+const publicUtils = {
 
-let START_INDICATOR = '│ ';
-let CHANGED_INDICATOR = '┤ ';
-let MODIFIED_INDICATOR = ' M ';
-let ORIGINAL_INDICATOR_1 = '┌ ';
-let ORIGINAL_INDICATOR_2 = '└▷';
-let ORIGINAL_INDICATOR_3 = '└▷';
-let DELETED_INDICATOR = ' D ';
+    /**
+     * @param {*} propToCheck
+     * @returns {boolean}
+     */
+    isString: function (propToCheck) {
+        return typeof propToCheck === 'string';
+    },
+
+    /**
+     * @param {string} str
+     * @param {string} strToReplace
+     * @param {string=} replacement
+     *
+     * @returns {string}
+     */
+    replaceLastOccurrence: function (str, strToReplace, replacement) {
+        return _.replaceOccurrenceOfString(str, strToReplace, replacement, false);
+    },
+
+    /**
+     * @param {string} str
+     * @param {string=} replacement
+     *
+     * @returns {string}
+     */
+    replaceTabs: function (str, replacement) {
+        return str.replace(TAB_REGEX, replacement);
+    },
+
+    /**
+     * @param {string} str
+     * @param {string=} replacement
+     *
+     * @returns {string}
+     */
+    replaceSpaces: function (str, replacement) {
+        return str.replace(SPACES_REGEX, replacement);
+    }
+
+};
+
+const START_INDICATOR = '│ ';
+const CHANGED_INDICATOR = '┤ ';
+const MODIFIED_INDICATOR = ' M ';
+const ORIGINAL_INDICATOR_1 = '┌ ';
+const ORIGINAL_INDICATOR_2 = '└▷';
+const ORIGINAL_INDICATOR_3 = '└▷';
+const DELETED_INDICATOR = ' D ';
 
 /**
  * @param {string} filePath
@@ -151,100 +224,23 @@ let DELETED_INDICATOR = ' D ';
  * @param {boolean=} options.showSpaces
  * @param {boolean=} options.hideOriginalLines
  * @param {boolean=} options.previewUnchangedLines
+ *
+ * @returns {void}
  */
-function handleFile(filePath, onLine, options) {
+function file(filePath, onLine, options) {
+    options = options || {};
 
     if (!_.isValidFile(filePath)) {
-        console.error('[ERROR] Not a valid file: \'' + filePath + '\'');
+        console.error('[ERROR] Not a valid file: \'' + filePath + '\'!');
         return;
     }
 
-    options = options || {};
+    if (onLine == null || typeof onLine !== 'function') {
+        console.error('[ERROR] no callback function given!');
+        return;
+    }
 
     let sModifiedFileContent = '';
-
-    let preview = options.preview;
-    let showSpaces = options.showSpaces;
-    let previewDeletedLines = true;
-    let previewOriginalLine = !options.hideOriginalLines;
-    let previewUnchangedLines = options.previewUnchangedLines;
-
-    /**
-     *
-     * @param sModifiedLine
-     * @param sLineNumber
-     * @param sLine
-     * @param preview
-     * @returns {*}
-     */
-    function _previewModifiedLine(sModifiedLine, sLineNumber, sLine, preview) {
-        if (!preview) {
-            return sModifiedLine;
-        }
-
-        let sOriginal = '';
-        let sLineIndicator = CHANGED_INDICATOR;
-        let bHasNewLines = sModifiedLine.split('\n');
-
-        if (previewOriginalLine) {
-            if (showSpaces) {
-                sLine = _.replaceTabs(_.replaceSpaces(sLine, SPACE), TAB);
-            }
-            sOriginal = sLineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + sLine + '\n';
-            if (bHasNewLines) {
-                sLineIndicator = ORIGINAL_INDICATOR_2;
-            } else {
-                sLineIndicator = ORIGINAL_INDICATOR_3;
-            }
-        }
-
-        if (showSpaces) {
-            sModifiedLine = _.replaceTabs(_.replaceSpaces(sModifiedLine, SPACE), TAB);
-        }
-
-        let nPaddingLength = sLineNumber.toString().length;
-        sModifiedLine = sOriginal + (previewOriginalLine ? ' '.repeat(nPaddingLength) : sLineNumber) +
-                        MODIFIED_INDICATOR + sLineIndicator + _previewNewLines(sModifiedLine, nPaddingLength);
-
-        return sModifiedLine;
-    }
-
-    /**
-     *
-     * @param sLine
-     * @param nPaddingLength
-     * @returns {*}
-     */
-    function _previewNewLines(sLine, nPaddingLength) {
-        let aLines = sLine.split('\n');
-        if (aLines.length > 0) {
-            sLine = aLines[0];
-            for (let i = 1; i < aLines.length; i++) {
-                sLine += '\n' + ' '.repeat(nPaddingLength) +
-                         MODIFIED_INDICATOR + (
-                             previewOriginalLine ? ORIGINAL_INDICATOR_3 : CHANGED_INDICATOR
-                         ) + aLines[i];
-            }
-        }
-        return sLine;
-    }
-
-    /**
-     *
-     * @param sLineNumber
-     * @param sLine
-     * @param preview
-     * @returns {*}
-     */
-    function _previewLineNumber(sLineNumber, sLine, preview) {
-        if (preview) {
-            if (showSpaces) {
-                sLine = _.replaceTabs(_.replaceSpaces(sLine, SPACE), TAB);
-            }
-            sLine = sLineNumber + ' '.repeat(3) + START_INDICATOR + sLine;
-        }
-        return sLine;
-    }
 
     /**
      *
@@ -254,10 +250,10 @@ function handleFile(filePath, onLine, options) {
      * @param preview
      * @returns {*}
      */
-    function _previewDeletedLine(sModifiedFileContent, sLineNumber, sLine, preview) {
-        if (preview && previewDeletedLines) {
-            if (showSpaces) {
-                sLine = _.replaceTabs(_.replaceSpaces(sLine, SPACE), TAB);
+    function previewDeletedLine(sModifiedFileContent, sLineNumber, sLine, preview) {
+        if (preview) {
+            if (options.showSpaces) {
+                sLine = publicUtils.replaceTabs(publicUtils.replaceSpaces(sLine, SPACE), TAB);
             }
             sModifiedFileContent += sLineNumber + DELETED_INDICATOR +
                                     CHANGED_INDICATOR + sLine + '\n';
@@ -271,26 +267,31 @@ function handleFile(filePath, onLine, options) {
      * @param aModifiedLines
      * @param preview
      */
-    function _applyChanges(aOriginalLines, aModifiedLines, preview) {
+    function applyChanges(aOriginalLines, aModifiedLines, preview) {
 
         for (let i in aModifiedLines) {
             if (aModifiedLines.hasOwnProperty(i)) {
                 let nPaddingLength = aOriginalLines.length.toString().length;
-                let sLineNumber = preview ? _.pad((parseInt(i) + 1), nPaddingLength, ' ') : '';
+                let sLineNumber = preview ? _.padPage((parseInt(i) + 1), nPaddingLength, ' ') : '';
 
                 let sModifiedLine = aModifiedLines[i];
                 if (sModifiedLine !== false) {
                     if (sModifiedLine != null && aOriginalLines[i] !== sModifiedLine) {
-                        sModifiedLine = _previewModifiedLine(sModifiedLine, sLineNumber, aOriginalLines[i], preview);
+                        if (preview) {
+                            sModifiedLine = _.previewModifiedLine(aOriginalLines[i], sModifiedLine, sLineNumber,
+                                options.hideOriginalLines, options.showSpaces);
+                        }
                         sModifiedFileContent += sModifiedLine + '\n';
                     } else {
-                        aOriginalLines[i] = _previewLineNumber(sLineNumber, aOriginalLines[i], preview);
-                        if (!preview || previewUnchangedLines) {
+                        if (preview) {
+                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], preview);
+                        }
+                        if (!preview || options.previewUnchangedLines) {
                             sModifiedFileContent += aOriginalLines[i] + '\n';
                         }
                     }
                 } else {
-                    sModifiedFileContent = _previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], preview);
+                    sModifiedFileContent = previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], preview);
                 }
             }
         }
@@ -300,67 +301,36 @@ function handleFile(filePath, onLine, options) {
 
     /**
      *
-     * @param oCurrentConfiguration
      * @param aModifiedLines
      * @param aLines
      * @param nIndex
      * @returns {{}}
      */
-    function _preselectLines(oCurrentConfiguration, aModifiedLines, aLines, nIndex) {
+    function preselectLines(aModifiedLines, aLines, nIndex) {
         let oLines = {};
-        let nInitialLinesCount = oCurrentConfiguration.nLinesNeeded;
-
-        for (let x = 0; x < nInitialLinesCount; x++) {
-            if (aModifiedLines.length > (nIndex + x)) {
-                let bSkipChanged = (
-                    oCurrentConfiguration.nLinesNeeded > 1 &&
-                    (
-                        (
-                            oCurrentConfiguration.bHideChangedLines &&
-                            aModifiedLines[nIndex + x] !== aLines[nIndex + x]
-                        )
-                        ||
-                        aModifiedLines[nIndex + x] === false
-                    )
-                );
-
-                if (aModifiedLines[nIndex + x] != null && !bSkipChanged) {
-                    oLines[nIndex + (x + 1)] = aModifiedLines[nIndex + x];
-                } else {
-                    nInitialLinesCount++;
-                }
+        if (aModifiedLines.length > (nIndex)) {
+            if (aModifiedLines[nIndex] != null) {
+                oLines[nIndex + 1] = aModifiedLines[nIndex];
             }
         }
-
         return oLines;
     }
 
     /**
      *
-     * @param oCurrentConfiguration
+     * @param onLine
      * @param aModifiedLines
      * @param oLines
      * @param nIndex
-     * @param oNameSpace
      * @returns {*}
      */
-    function _pipeToLineHandler(oCurrentConfiguration, aModifiedLines, oLines, nIndex, oNameSpace) {
+    function pipeToLineHandler(onLine, aModifiedLines, oLines, nIndex) {
         if (Object.keys(oLines).length > 0) {
-            let fnCurrentHandler = oCurrentConfiguration.fnHandler;
-            if (oCurrentConfiguration.nLinesNeeded === 1) {
-                let line = oLines[Object.keys(oLines)[0]];
-                if (line !== false) {
-                    let sResult = fnCurrentHandler(line, (nIndex + 1), oNameSpace, filePath);
-                    if (sResult != null) {
-                        aModifiedLines[nIndex] = sResult;
-                    }
-                }
-            } else {
-                fnCurrentHandler(oLines, (nIndex + 1), oNameSpace, filePath);
-                for (let nLineNumber in oLines) {
-                    if (oLines.hasOwnProperty(nLineNumber)) {
-                        aModifiedLines[nLineNumber - 1] = oLines[nLineNumber];
-                    }
+            let line = oLines[Object.keys(oLines)[0]];
+            if (line !== false) {
+                let sResult = onLine(line, (nIndex + 1));
+                if (sResult != null) {
+                    aModifiedLines[nIndex] = sResult;
                 }
             }
         }
@@ -370,9 +340,9 @@ function handleFile(filePath, onLine, options) {
     /**
      *
      */
-    function _writeFile() {
-        sModifiedFileContent = _.replaceLastOccurrence(sModifiedFileContent, '\n');
-        if (preview) {
+    function writeFile() {
+        sModifiedFileContent = publicUtils.replaceLastOccurrence(sModifiedFileContent, '\n');
+        if (options.preview) {
             if (sModifiedFileContent != null && sModifiedFileContent.trim().length > 0) {
                 console.log('\n' + sModifiedFileContent);
             }
@@ -382,10 +352,6 @@ function handleFile(filePath, onLine, options) {
         }
     }
 
-    if (onLine == null) {
-        return;
-    }
-
     let sFileContent = fs.readFileSync(filePath, 'utf-8');
 
     let aLines = sFileContent.split('\n');
@@ -393,32 +359,34 @@ function handleFile(filePath, onLine, options) {
 
     let aModifiedLines;
     aModifiedLines = aLines.slice(0);
-    let oCurrentConfiguration = {
-        nLinesNeeded: 1,
-        fnHandler: onLine,
-        bHideChangedLines: false
-    };
-    let oNameSpace = {};
 
     for (let nLineIndex = 0; nLineIndex < aModifiedLines.length; nLineIndex++) {
-        let oLines = _preselectLines(oCurrentConfiguration, aModifiedLines, aLines, nLineIndex);
-        aModifiedLines = _pipeToLineHandler(oCurrentConfiguration, aModifiedLines, oLines, nLineIndex, oNameSpace);
+        let oLines = preselectLines(aModifiedLines, aLines, nLineIndex);
+        aModifiedLines = pipeToLineHandler(onLine, aModifiedLines, oLines, nLineIndex);
     }
-    let bFileChanged = (_applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
-    sModifiedFileContent = '';
-    _applyChanges(aLinesCopy, aModifiedLines, preview);
 
-    if (preview) {
+    let bFileChanged = (applyChanges(aLinesCopy, aModifiedLines).trim() !== sFileContent.trim());
+    sModifiedFileContent = '';
+    applyChanges(aLinesCopy, aModifiedLines, options.preview);
+
+    if (options.preview) {
         console.log('[INFO] Reading file: \'' + filePath + '\'');
     }
 
     if (bFileChanged) {
-        _writeFile();
+        writeFile();
     }
 
 }
 
+if (global.describe != null) {
+    // releasing the private methods for testing.
+    Object.keys(_).forEach((x) => {
+        publicUtils[x] = _[x];
+    });
+}
+
 export const rstring = {
-    handleFile: handleFile,
-    stringUtils: _
+    file: file,
+    utils: publicUtils
 };

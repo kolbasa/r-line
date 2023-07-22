@@ -6,7 +6,7 @@
 //     const IPSUM = 'Lorem ipsum dolor sit amet, consetetur sadipscing elitr.';
 //
 //     it('test', () => {
-//
+//         console.log('\n\n' + 'string.js-9', rstring.utils.getMatchIndexes);
 //     });
 //
 // });

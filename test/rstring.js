@@ -17,8 +17,8 @@ const SPACE = '·';
 
 const TEXT_FILE = 'ipsum.txt';
 const CONTENT = A + N + B + N + C;
-const REPLACING_FILE_LOG = `[INFO] Replacing file: '${TEXT_FILE}'${N}`;
-const READING_FILE_LOG = `[INFO] Reading file: '${TEXT_FILE}'${N}`;
+const REPLACING_FILE_LOG = `[INFO] Replacing file: '${TEXT_FILE}'` + N;
+const READING_FILE_LOG = `[INFO] Reading file: '${TEXT_FILE}'` + N;
 
 let stdout = '', stderr = '';
 const consoleLogOriginal = console.log;
@@ -92,7 +92,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: options.content || CONTENT});
         }
 
-        rstring.handleFile(
+        rstring.file(
             TEXT_FILE,
             (line) => {
                 if (linesToChange[line] != null) {
@@ -125,7 +125,7 @@ describe('rstring.js', () => {
     it('number of lines', () => {
         mock({[TEXT_FILE]: CONTENT});
         let lines = [];
-        rstring.handleFile(TEXT_FILE, (line) => {
+        rstring.file(TEXT_FILE, (line) => {
             lines.push(line);
         });
         expect(lines).to.deep.equal(CONTENT.split(N));
@@ -150,12 +150,12 @@ describe('rstring.js', () => {
 
         const missingFile = 'unknown.txt';
         let lines = [];
-        rstring.handleFile(missingFile, (line) => {
+        rstring.file(missingFile, (line) => {
             lines.push(line);
         });
 
         expect(stdout).to.be.empty;
-        expect(stderr).to.equal(`[ERROR] Not a valid file: '${missingFile}'${N}`);
+        expect(stderr).to.equal(`[ERROR] Not a valid file: '${missingFile}'!` + N);
         expect(lines).to.be.empty;
 
         try {
@@ -167,13 +167,23 @@ describe('rstring.js', () => {
         throw new chai.AssertionError(`File should not exist: '${missingFile}'`);
     });
 
+    it('callback missing', () => {
+        mock({[TEXT_FILE]: CONTENT});
+        // noinspection JSCheckFunctionSignatures
+        rstring.file(TEXT_FILE);
+
+        expect(stdout).to.be.empty;
+        expect(stderr).to.equal('[ERROR] no callback function given!' + N);
+        expect(readTextFile()).to.equal(CONTENT);
+    });
+
     describe('empty file', () => {
 
         it('read only', () => {
             mock({[TEXT_FILE]: ''});
 
             let lines = [];
-            rstring.handleFile(TEXT_FILE, (line) => {
+            rstring.file(TEXT_FILE, (line) => {
                 lines.push(line);
             });
 
@@ -189,7 +199,7 @@ describe('rstring.js', () => {
         it('adding lines', () => {
             mock({[TEXT_FILE]: ''});
 
-            rstring.handleFile(TEXT_FILE, () => CONTENT);
+            rstring.file(TEXT_FILE, () => CONTENT);
 
             expect(readTextFile()).to.equal(CONTENT);
             expect(stdout).to.equal(REPLACING_FILE_LOG);
