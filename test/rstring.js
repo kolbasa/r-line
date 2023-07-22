@@ -72,11 +72,12 @@ describe('rstring.js', () => {
      * @param {Object.<string, string|0>=} linesToChange
      *
      * @param {object=} options
+     * @param {boolean=} options.hideLogOfUnchangedFile
      * @param {boolean=} options.preview
-     * @param {boolean=} options.showSpaces
-     * @param {boolean=} options.hideOriginalLines
-     * @param {boolean=} options.previewUnchangedLines
-     * @param {boolean=} options.doNotLogUnchanged
+     * @param {object=} options.previewOptions
+     * @param {boolean=} options.previewOptions.showSpaces
+     * @param {boolean=} options.previewOptions.hideOriginalLines
+     * @param {boolean=} options.previewOptions.showUnchangedLines
      *
      * @param {boolean=} options.resume The default text file should not be reset
      * @param {string=} options.content If you want to replace the default content of the test text file.
@@ -225,7 +226,7 @@ describe('rstring.js', () => {
         describe('log', () => {
 
             it('changed', () => {
-                changeLines({A: D}, {preview: true, doNotLogUnchanged: true});
+                changeLines({A: D}, {preview: true, hideLogOfUnchangedFile: true});
                 expect(stdout).to.equal(
                     READING_FILE_LOG + N +
                     '1   ┌ A' + N +
@@ -241,7 +242,7 @@ describe('rstring.js', () => {
                 });
 
                 it('do not log unchanged', () => {
-                    changeLines({}, {preview: true, doNotLogUnchanged: true});
+                    changeLines({}, {preview: true, hideLogOfUnchangedFile: true});
                     expect(stdout).to.be.empty;
                 });
 
@@ -295,7 +296,7 @@ describe('rstring.js', () => {
                     describe('spaces', () => {
 
                         it('start', () => {
-                            changeLines({A: D + '  '}, {preview: true, showSpaces: true});
+                            changeLines({A: D + '  '}, {preview: true, previewOptions: {showSpaces: true}});
                             expectPreviewContent(
                                 '1   ┌ A' + N +
                                 '  M └▷D' + SPACE + SPACE
@@ -303,7 +304,7 @@ describe('rstring.js', () => {
                         });
 
                         it('end', () => {
-                            changeLines({A: '  ' + D}, {preview: true, showSpaces: true});
+                            changeLines({A: '  ' + D}, {preview: true, previewOptions: {showSpaces: true}});
                             expectPreviewContent(
                                 '1   ┌ A' + N +
                                 '  M └▷' + SPACE + SPACE + 'D'
@@ -315,7 +316,7 @@ describe('rstring.js', () => {
                     describe('tabs', () => {
 
                         it('start', () => {
-                            changeLines({A: D + T + T}, {preview: true, showSpaces: true});
+                            changeLines({A: D + T + T}, {preview: true, previewOptions: {showSpaces: true}});
                             expectPreviewContent(
                                 '1   ┌ A' + N +
                                 '  M └▷D' + TAB + TAB
@@ -323,7 +324,7 @@ describe('rstring.js', () => {
                         });
 
                         it('end', () => {
-                            changeLines({A: T + T + D}, {preview: true, showSpaces: true});
+                            changeLines({A: T + T + D}, {preview: true, previewOptions: {showSpaces: true}});
                             expectPreviewContent(
                                 '1   ┌ A' + N +
                                 '  M └▷' + TAB + TAB + 'D'
@@ -340,13 +341,21 @@ describe('rstring.js', () => {
 
                         it('start', () => {
                             const content = '  ' + A;
-                            changeLines({[content]: 0}, {preview: true, showSpaces: true, content: content});
+                            changeLines({[content]: 0}, {
+                                content: content,
+                                preview: true,
+                                previewOptions: {showSpaces: true}
+                            });
                             expectPreviewContent('1 D ┤ ' + SPACE + SPACE + 'A', content);
                         });
 
                         it('end', () => {
                             const content = A + '  ';
-                            changeLines({[content]: 0}, {preview: true, showSpaces: true, content: content});
+                            changeLines({[content]: 0}, {
+                                content: content,
+                                preview: true,
+                                previewOptions: {showSpaces: true}
+                            });
                             expectPreviewContent('1 D ┤ A' + SPACE + SPACE, content);
                         });
 
@@ -356,13 +365,21 @@ describe('rstring.js', () => {
 
                         it('start', () => {
                             const content = T + T + A;
-                            changeLines({[content]: 0}, {preview: true, showSpaces: true, content: content});
+                            changeLines({[content]: 0}, {
+                                content: content,
+                                preview: true,
+                                previewOptions: {showSpaces: true}
+                            });
                             expectPreviewContent('1 D ┤ ' + TAB + TAB + 'A', content);
                         });
 
                         it('end', () => {
                             const content = A + T + T;
-                            changeLines({[content]: 0}, {preview: true, showSpaces: true, content: content});
+                            changeLines({[content]: 0}, {
+                                content: content,
+                                preview: true,
+                                previewOptions: {showSpaces: true}
+                            });
                             expectPreviewContent('1 D ┤ A' + TAB + TAB, content);
                         });
 
@@ -375,7 +392,7 @@ describe('rstring.js', () => {
             describe('preview unchanged lines', () => {
 
                 it('first line', () => {
-                    changeLines({A: D}, {preview: true, previewUnchangedLines: true});
+                    changeLines({A: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   ┌ A' + N +
                         '  M └▷D' + N +
@@ -385,7 +402,7 @@ describe('rstring.js', () => {
                 });
 
                 it('second line', () => {
-                    changeLines({B: D}, {preview: true, previewUnchangedLines: true});
+                    changeLines({B: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   │ A' + N +
                         '2   ┌ B' + N +
@@ -395,7 +412,7 @@ describe('rstring.js', () => {
                 });
 
                 it('last line', () => {
-                    changeLines({C: D}, {preview: true, previewUnchangedLines: true});
+                    changeLines({C: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   │ A' + N +
                         '2   │ B' + N +
@@ -405,7 +422,7 @@ describe('rstring.js', () => {
                 });
 
                 it('change all', () => {
-                    changeLines({A: D, B: D, C: D}, {preview: true, previewUnchangedLines: true});
+                    changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   ┌ A' + N +
                         '  M └▷D' + N +
@@ -421,22 +438,22 @@ describe('rstring.js', () => {
             describe('hide original lines', () => {
 
                 it('first line', () => {
-                    changeLines({A: D}, {preview: true, hideOriginalLines: true});
+                    changeLines({A: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent('1 M ┤ D');
                 });
 
                 it('second line', () => {
-                    changeLines({B: D}, {preview: true, hideOriginalLines: true});
+                    changeLines({B: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent('2 M ┤ D');
                 });
 
                 it('last line', () => {
-                    changeLines({C: D}, {preview: true, hideOriginalLines: true});
+                    changeLines({C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent('3 M ┤ D');
                 });
 
                 it('change all', () => {
-                    changeLines({A: D, B: D, C: D}, {preview: true, hideOriginalLines: true});
+                    changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent(
                         '1 M ┤ D' + N +
                         '2 M ┤ D' + N +
@@ -451,8 +468,10 @@ describe('rstring.js', () => {
                 it('first line', () => {
                     changeLines({A: D}, {
                         preview: true,
-                        hideOriginalLines: true,
-                        previewUnchangedLines: true
+                        previewOptions: {
+                            hideOriginalLines: true,
+                            showUnchangedLines: true
+                        }
                     });
                     expectPreviewContent(
                         '1 M ┤ D' + N +
@@ -464,8 +483,10 @@ describe('rstring.js', () => {
                 it('second line', () => {
                     changeLines({B: D}, {
                         preview: true,
-                        hideOriginalLines: true,
-                        previewUnchangedLines: true
+                        previewOptions: {
+                            hideOriginalLines: true,
+                            showUnchangedLines: true
+                        }
                     });
                     expectPreviewContent(
                         '1   │ A' + N +
@@ -477,8 +498,10 @@ describe('rstring.js', () => {
                 it('last line', () => {
                     changeLines({C: D}, {
                         preview: true,
-                        hideOriginalLines: true,
-                        previewUnchangedLines: true
+                        previewOptions: {
+                            hideOriginalLines: true,
+                            showUnchangedLines: true
+                        }
                     });
                     expectPreviewContent(
                         '1   │ A' + N +
@@ -490,8 +513,10 @@ describe('rstring.js', () => {
                 it('change all', () => {
                     changeLines({A: D, B: D, C: D}, {
                         preview: true,
-                        hideOriginalLines: true,
-                        previewUnchangedLines: true
+                        previewOptions: {
+                            hideOriginalLines: true,
+                            showUnchangedLines: true
+                        }
                     });
                     expectPreviewContent(
                         '1 M ┤ D' + N +
@@ -537,7 +562,7 @@ describe('rstring.js', () => {
             describe('preview unchanged lines', () => {
 
                 it('first line', () => {
-                    changeLines({A: 0}, {preview: true, previewUnchangedLines: true});
+                    changeLines({A: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1 D ┤ A' + N +
                         '2   │ B' + N +
@@ -546,7 +571,7 @@ describe('rstring.js', () => {
                 });
 
                 it('second line', () => {
-                    changeLines({B: 0}, {preview: true, previewUnchangedLines: true});
+                    changeLines({B: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   │ A' + N +
                         '2 D ┤ B' + N +
@@ -555,7 +580,7 @@ describe('rstring.js', () => {
                 });
 
                 it('last line', () => {
-                    changeLines({C: 0}, {preview: true, previewUnchangedLines: true});
+                    changeLines({C: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   │ A' + N +
                         '2   │ B' + N +
@@ -564,7 +589,7 @@ describe('rstring.js', () => {
                 });
 
                 it('change all', () => {
-                    changeLines({A: 0, B: 0, C: 0}, {preview: true, previewUnchangedLines: true});
+                    changeLines({A: 0, B: 0, C: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1 D ┤ A' + N +
                         '2 D ┤ B' + N +
@@ -588,7 +613,7 @@ describe('rstring.js', () => {
             });
 
             it('preview unchanged lines', () => {
-                changeLines({A: D, B: 0}, {preview: true, previewUnchangedLines: true});
+                changeLines({A: D, B: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                 expectPreviewContent(
                     '1   ┌ A' + N +
                     '  M └▷D' + N +
@@ -598,7 +623,7 @@ describe('rstring.js', () => {
             });
 
             it('hide original lines', () => {
-                changeLines({A: D, B: 0}, {preview: true, hideOriginalLines: true});
+                changeLines({A: D, B: 0}, {preview: true, previewOptions: {hideOriginalLines: true}});
                 expectPreviewContent(
                     '1 M ┤ D' + N +
                     '2 D ┤ B'
@@ -606,7 +631,13 @@ describe('rstring.js', () => {
             });
 
             it('hideOriginalLines + preview unchanged lines', () => {
-                changeLines({A: D, B: 0}, {preview: true, hideOriginalLines: true, previewUnchangedLines: true});
+                changeLines({A: D, B: 0}, {
+                    preview: true,
+                    previewOptions: {
+                        showUnchangedLines: true,
+                        hideOriginalLines: true
+                    }
+                });
                 expectPreviewContent(
                     '1 M ┤ D' + N +
                     '2 D ┤ B' + N +
@@ -648,7 +679,7 @@ describe('rstring.js', () => {
         describe('log', () => {
 
             it('changed', () => {
-                changeLines({A: D}, {doNotLogUnchanged: true});
+                changeLines({A: D}, {hideLogOfUnchangedFile: true});
                 expect(stdout).to.equal(REPLACING_FILE_LOG);
             });
 
@@ -660,7 +691,7 @@ describe('rstring.js', () => {
                 });
 
                 it('do not log unchanged', () => {
-                    changeLines({}, {doNotLogUnchanged: true});
+                    changeLines({}, {hideLogOfUnchangedFile: true});
                     expect(stdout).to.be.empty;
                 });
 
@@ -692,7 +723,7 @@ describe('rstring.js', () => {
 
         });
 
-        describe('new line', () => {
+        describe('new lines', () => {
 
             it('adding two', () => {
                 changeLines({A: A + N + N});
@@ -704,10 +735,14 @@ describe('rstring.js', () => {
                 expectChangedContent(A + N + N + N + C);
             });
 
+            it('should not trim original content', () => {
+                changeLines({B: C}, {content: N + A + N + B + N});
+                expectChangedContent(N + A + N + C + N);
+            });
+
             describe('first line', () => {
 
-                it.skip('start', () => {
-                    stopConsoleLogRecording();
+                it('start', () => {
                     changeLines({A: N + A});
                     expectChangedContent(N + A + N + B + N + C);
                 });
@@ -726,7 +761,7 @@ describe('rstring.js', () => {
                     expectChangedContent(A + N + B + N + N + C);
                 });
 
-                it.skip('end', () => {
+                it('end', () => {
                     changeLines({C: C + N});
                     expectChangedContent(A + N + B + N + C + N);
                 });

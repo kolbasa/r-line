@@ -11,6 +11,14 @@ const ENCODING = 'utf-8';
 const TAB_REGEX = new RegExp('\\t', 'g');
 const SPACES_REGEX = new RegExp(S, 'g');
 
+const START_INDICATOR = '│ ';
+const CHANGE_INDICATOR = '┤ ';
+const MODIFIED_INDICATOR = ' M ';
+const ORIGINAL_INDICATOR_1 = '┌ ';
+const ORIGINAL_INDICATOR_2 = '└▷';
+const ORIGINAL_INDICATOR_3 = '└▷';
+const DELETED_INDICATOR = ' D ';
+
 const _ = {
     /**
      * @param {string} str
@@ -80,26 +88,22 @@ const _ = {
     /**
      * @param {string} lineNumber
      * @param {string} line
-     * @param {boolean} showSpaces
      *
      * @returns {string}
      */
-    previewLineNumber: (lineNumber, line, showSpaces) => {
-        return lineNumber + S.repeat(3) + START_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
+    previewUnchangedLine: (lineNumber, line) => {
+        return lineNumber + S.repeat(3) + START_INDICATOR + line;
     },
 
     /**
-     * @param {number} number
+     * @param {string} str
      * @param {number} width
      * @param {string} prefix
      *
      * @returns {string}
      */
-    padPage: (number, width, prefix) => {
-        prefix = prefix || '0';
-        const pageString = number.toString();
-        const paddedPage = new Array(width - pageString.length + 1).join(prefix) + number;
-        return pageString.length >= width ? number : paddedPage;
+    pad: (str, width, prefix) => {
+        return str.length >= width ? str : (new Array(width - str.length + 1).join(prefix) + str);
     },
 
     /**
@@ -107,7 +111,19 @@ const _ = {
      * @returns {string}
      */
     showSpaces: (content) => {
+        if (!utils.isString(content)) {
+            return content;
+        }
         return utils.replaceTabs(utils.replaceSpaces(content, SPACE), TAB);
+    },
+
+    /**
+     * @param {string[]} originalLines
+     * @param {number} index
+     * @returns {string}
+     */
+    lineNumber: (originalLines, index) => {
+        return _.pad((index + 1).toString(), originalLines.length.toString().length, S);
     },
 
     /**
@@ -131,15 +147,13 @@ const _ = {
     },
 
     /**
+     * @param {string} lineNumber
      * @param {string} originalLine
      * @param {string} modifiedLine
-     * @param {string} lineNumber
-     * @param {boolean} showSpaces
      *
      * @returns {{originalLine: string, changeIndicator: string}}
      */
-    previewOriginalLine: (originalLine, modifiedLine, lineNumber, showSpaces) => {
-        originalLine = showSpaces ? _.showSpaces(originalLine) : originalLine;
+    previewOriginalLine: (lineNumber, originalLine, modifiedLine) => {
         const hasNewLines = modifiedLine.split(N);
         return {
             originalLine: lineNumber + S.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
@@ -151,15 +165,13 @@ const _ = {
      * @param {string} originalLine
      * @param {string} modifiedLine
      * @param {string} lineNumber
-     * @param {boolean} showSpaces
      *
      * @returns {string}
      */
-    previewModifiedLine: function (originalLine, modifiedLine, lineNumber, showSpaces) {
+    previewChangedLine: function (lineNumber, originalLine, modifiedLine) {
         let conf = {changeIndicator: CHANGE_INDICATOR};
 
         conf = originalLine == null ? conf : _.previewOriginalLine(...arguments);
-        modifiedLine = showSpaces ? _.showSpaces(modifiedLine) : modifiedLine;
 
         const paddingLength = lineNumber.toString().length;
         const content = _.previewContent(modifiedLine, paddingLength, conf.changeIndicator);
@@ -171,41 +183,47 @@ const _ = {
     /**
      * @param {string} lineNumber
      * @param {string} line
-     * @param {boolean} showSpaces
      *
      * @returns {string}
      */
-    previewDeletedLine: (lineNumber, line, showSpaces) => {
-        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
+    previewDeletedLine: (lineNumber, line) => {
+        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + line;
     },
 
     /**
      * @param {string[]} originalLines
      * @param {string[]} modifiedLines
-     * @param options
      *
-     * @returns {string}
+     * @param {object} options
+     * @param {boolean=} options.showSpaces
+     * @param {boolean=} options.hideOriginalLines
+     * @param {boolean=} options.showUnchangedLines
+     *
+     * @returns {String}
      */
     preview: (originalLines, modifiedLines, options) => {
-        options = options || {};
+        if (options == null) {
+            return null;
+        }
 
         return modifiedLines
             .map((line, i) => {
-                let lineNumber = _.padPage((i + 1), originalLines.length.toString().length, S);
+                let lineNumber = _.lineNumber(originalLines, i);
+
+                originalLines[i] = options.showSpaces ? _.showSpaces(originalLines[i]) : originalLines[i];
+                modifiedLines[i] = options.showSpaces ? _.showSpaces(modifiedLines[i]) : modifiedLines[i];
 
                 if (modifiedLines[i] === false) {
-                    return _.previewDeletedLine(lineNumber, originalLines[i], options.showSpaces);
+                    return _.previewDeletedLine(lineNumber, originalLines[i]);
                 }
 
                 if (originalLines[i] !== modifiedLines[i]) {
                     const originalLine = options.hideOriginalLines ? null : originalLines[i];
-                    modifiedLines[i] = _.previewModifiedLine(originalLine, modifiedLines[i], lineNumber, options.showSpaces);
-                    return modifiedLines[i];
+                    return _.previewChangedLine(lineNumber, originalLine, modifiedLines[i]);
                 }
 
-                originalLines[i] = _.previewLineNumber(lineNumber, originalLines[i], options.showSpaces);
-                if (options.previewUnchangedLines) {
-                    return originalLines[i];
+                if (options.showUnchangedLines) {
+                    return _.previewUnchangedLine(lineNumber, originalLines[i]);
                 }
             })
             .filter(utils.isString)
@@ -261,15 +279,10 @@ const _ = {
     /**
      * @param {boolean} contentChanged
      * @param {string} filePath
-     * @param {string} previewContent
-     * @param {boolean} preview
      *
      * @returns {void}
      */
-    logProgress: function (contentChanged, filePath, previewContent, preview) {
-        if (preview) {
-            return _.logPreview(...arguments);
-        }
+    logFileChange: function (contentChanged, filePath) {
         if (contentChanged) {
             console.log(`[INFO] Replacing file: '${filePath}'`);
         } else {
@@ -338,28 +351,22 @@ const utils = {
 
 };
 
-const START_INDICATOR = '│ ';
-const CHANGE_INDICATOR = '┤ ';
-const MODIFIED_INDICATOR = ' M ';
-const ORIGINAL_INDICATOR_1 = '┌ ';
-const ORIGINAL_INDICATOR_2 = '└▷';
-const ORIGINAL_INDICATOR_3 = '└▷';
-const DELETED_INDICATOR = ' D ';
-
 /**
  * @param {string} filePath
  * @param {function} onLineCallback
  * @param {object=} options
+ * @param {boolean=} options.hideLogOfUnchangedFile
  * @param {boolean=} options.preview
- * @param {boolean=} options.showSpaces
- * @param {boolean=} options.hideOriginalLines
- * @param {boolean=} options.previewUnchangedLines
- * @param {boolean=} options.doNotLogUnchanged
+ * @param {object=} options.previewOptions
+ * @param {boolean=} options.previewOptions.showSpaces
+ * @param {boolean=} options.previewOptions.hideOriginalLines
+ * @param {boolean=} options.previewOptions.showUnchangedLines
  *
  * @returns {void}
  */
 function file(filePath, onLineCallback, options) {
     options = options || {};
+    options.previewOptions = options.preview ? (options.previewOptions || {}) : null;
 
     _.validate(filePath, onLineCallback);
 
@@ -371,13 +378,20 @@ function file(filePath, onLineCallback, options) {
     const fulltextChanged = linesChanged.filter(utils.isString).join(N);
     const hasChanged = fulltextChanged !== fulltext;
 
-    if (hasChanged || !options.doNotLogUnchanged) {
-        _.logProgress(hasChanged, filePath, _.preview(lines, linesChanged, options), options.preview);
-    }
-
     if (hasChanged && !options.preview) {
         _.writeFile(filePath, fulltextChanged);
     }
+
+    if (!hasChanged && options.hideLogOfUnchangedFile) {
+        return; // Log is not desired
+    }
+
+    if (options.preview) {
+        _.logPreview(hasChanged, filePath, _.preview(lines, linesChanged, options.previewOptions));
+    } else {
+        _.logFileChange(hasChanged, filePath);
+    }
+
 }
 
 if (global.describe != null) { // global mocha method
