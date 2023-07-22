@@ -1,5 +1,3 @@
-'use strict';
-
 import fs from 'fs';
 
 const S = ' ';
@@ -86,16 +84,6 @@ const _ = {
     },
 
     /**
-     * @param {string} lineNumber
-     * @param {string} line
-     *
-     * @returns {string}
-     */
-    previewUnchangedLine: (lineNumber, line) => {
-        return lineNumber + S.repeat(3) + START_INDICATOR + line;
-    },
-
-    /**
      * @param {string} str
      * @param {number} width
      * @param {string} prefix
@@ -118,12 +106,12 @@ const _ = {
     },
 
     /**
-     * @param {string[]} originalLines
-     * @param {number} index
+     * @param {number} lineNumber
+     * @param {number} lineCount
      * @returns {string}
      */
-    lineNumber: (originalLines, index) => {
-        return _.pad((index + 1).toString(), originalLines.length.toString().length, S);
+    lineNumber: (lineNumber, lineCount) => {
+        return _.pad(lineNumber.toString(), lineCount.toString().length, S);
     },
 
     /**
@@ -162,6 +150,16 @@ const _ = {
     },
 
     /**
+     * @param {string} lineNumber
+     * @param {string} line
+     *
+     * @returns {string}
+     */
+    previewDeletedLine: (lineNumber, line) => {
+        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + line;
+    },
+
+    /**
      * @param {string} originalLine
      * @param {string} modifiedLine
      * @param {string} lineNumber
@@ -186,8 +184,40 @@ const _ = {
      *
      * @returns {string}
      */
-    previewDeletedLine: (lineNumber, line) => {
-        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + line;
+    previewUnchangedLine: (lineNumber, line) => {
+        return lineNumber + S.repeat(3) + START_INDICATOR + line;
+    },
+
+    /**
+     * @param {string} line
+     * @param {number} lineNumber
+     * @param {number} lineCount
+     * @param {string} originalLine
+     *
+     * @param {object} options
+     * @param {boolean=} options.showSpaces
+     * @param {boolean=} options.hideOriginalLines
+     * @param {boolean=} options.showUnchangedLines
+     *
+     * @returns {String}
+     */
+    previewLine: (line, originalLine, lineNumber, lineCount, options) => {
+        let paddedLineNumber = _.lineNumber(lineNumber, lineCount);
+
+        line = options.showSpaces ? _.showSpaces(line) : line;
+        originalLine = options.showSpaces ? _.showSpaces(originalLine) : originalLine;
+
+        if (line === false) {
+            return _.previewDeletedLine(paddedLineNumber, originalLine);
+        }
+
+        if (originalLine !== line) {
+            return _.previewChangedLine(paddedLineNumber, options.hideOriginalLines ? null : originalLine, line);
+        }
+
+        if (options.showUnchangedLines) {
+            return _.previewUnchangedLine(paddedLineNumber, originalLine);
+        }
     },
 
     /**
@@ -202,31 +232,9 @@ const _ = {
      * @returns {String}
      */
     preview: (originalLines, modifiedLines, options) => {
-        if (options == null) {
-            return null;
-        }
-
         return modifiedLines
-            .map((line, i) => {
-                let lineNumber = _.lineNumber(originalLines, i);
-
-                originalLines[i] = options.showSpaces ? _.showSpaces(originalLines[i]) : originalLines[i];
-                modifiedLines[i] = options.showSpaces ? _.showSpaces(modifiedLines[i]) : modifiedLines[i];
-
-                if (modifiedLines[i] === false) {
-                    return _.previewDeletedLine(lineNumber, originalLines[i]);
-                }
-
-                if (originalLines[i] !== modifiedLines[i]) {
-                    const originalLine = options.hideOriginalLines ? null : originalLines[i];
-                    return _.previewChangedLine(lineNumber, originalLine, modifiedLines[i]);
-                }
-
-                if (options.showUnchangedLines) {
-                    return _.previewUnchangedLine(lineNumber, originalLines[i]);
-                }
-            })
-            .filter(utils.isString)
+            .map((line, i) => _.previewLine(line, originalLines[i], i + 1, originalLines.length, options))
+            .filter(utils.isString) // removing delete (false) statements
             .join(N);
     },
 
@@ -364,7 +372,7 @@ const utils = {
  *
  * @returns {void}
  */
-function file(filePath, onLineCallback, options) {
+function changeLine(filePath, onLineCallback, options) {
     options = options || {};
     options.previewOptions = options.preview ? (options.previewOptions || {}) : null;
 
@@ -391,7 +399,6 @@ function file(filePath, onLineCallback, options) {
     } else {
         _.logFileChange(hasChanged, filePath);
     }
-
 }
 
 if (global.describe != null) { // global mocha method
@@ -399,4 +406,4 @@ if (global.describe != null) { // global mocha method
     Object.keys(_).forEach((x) => utils[x] = _[x]);
 }
 
-export const rstring = {file: file, utils: utils};
+export const rstring = {changeLine: changeLine, utils: utils};

@@ -91,7 +91,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: options.content || CONTENT});
         }
 
-        rstring.file(
+        rstring.changeLine(
             TEXT_FILE,
             (line) => {
                 if (linesToChange[line] != null) {
@@ -122,7 +122,7 @@ describe('rstring.js', () => {
     it('number of lines', () => {
         mock({[TEXT_FILE]: CONTENT});
         let lines = [];
-        rstring.file(TEXT_FILE, (line) => {
+        rstring.changeLine(TEXT_FILE, (line) => {
             lines.push(line);
         });
         expect(lines).to.deep.equal(CONTENT.split(N));
@@ -139,7 +139,7 @@ describe('rstring.js', () => {
         mock({[TEXT_FILE]: CONTENT});
         try {
             // noinspection JSCheckFunctionSignatures
-            rstring.file(TEXT_FILE);
+            rstring.changeLine(TEXT_FILE);
         } catch (err) {
             expect(err.message).to.equal(`[ERROR] no callback function given!`);
             expect(stdout).to.be.empty;
@@ -158,7 +158,7 @@ describe('rstring.js', () => {
             let lines = [];
 
             try {
-                rstring.file(missingFile, (line) => {
+                rstring.changeLine(missingFile, (line) => {
                     lines.push(line);
                 });
             } catch (err) {
@@ -175,7 +175,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: CONTENT});
             const missingFile = 'unknown.txt';
             try {
-                rstring.file(missingFile, () => {
+                rstring.changeLine(missingFile, () => {
                     //
                 });
             } catch (err) {
@@ -200,7 +200,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: ''});
 
             let lines = [];
-            rstring.file(TEXT_FILE, (line) => {
+            rstring.changeLine(TEXT_FILE, (line) => {
                 lines.push(line);
             });
 
@@ -213,7 +213,7 @@ describe('rstring.js', () => {
         it('adding lines', () => {
             mock({[TEXT_FILE]: ''});
 
-            rstring.file(TEXT_FILE, () => CONTENT);
+            rstring.changeLine(TEXT_FILE, () => CONTENT);
 
             expect(readTextFile()).to.equal(CONTENT);
             expect(stdout).to.equal(REPLACING_FILE_LOG);
