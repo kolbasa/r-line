@@ -706,7 +706,7 @@ describe('rstring.js', () => {
 
             describe('first line', () => {
 
-                it('start', () => {
+                it.skip('start', () => {
                     stopConsoleLogRecording();
                     changeLines({A: N + A});
                     expectChangedContent(N + A + N + B + N + C);

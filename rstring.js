@@ -83,10 +83,7 @@ const _ = {
      * @returns {string}
      */
     previewLineNumber: (lineNumber, line, showSpaces) => {
-        if (showSpaces) {
-            line = utils.replaceTabs(utils.replaceSpaces(line, SPACE), TAB);
-        }
-        return lineNumber + ' '.repeat(3) + START_INDICATOR + line;
+        return lineNumber + (' ').repeat(3) + START_INDICATOR + (showSpaces ? _.showSpaces(line) : line);
     },
 
     /**
@@ -104,21 +101,29 @@ const _ = {
     },
 
     /**
+     * @param {string} content
+     * @returns {string}
+     */
+    showSpaces: (content) => {
+        return utils.replaceTabs(utils.replaceSpaces(content, SPACE), TAB);
+    },
+
+    /**
      * @param {string} line
      * @param {number} paddingLength
-     * @param {string} lineIndicator
+     * @param {string} changeIndicator
      *
      * @returns {string}
      */
-    previewNewLines: (line, paddingLength, lineIndicator) => {
-        let lines = line.split(N);
+    previewContent: (line, paddingLength, changeIndicator) => {
+        const lines = line.split(N);
         if (lines.length === 0) {
             return line;
         }
         line = lines[0];
         for (let i = 1; i < lines.length; i++) {
-            line += N + ' '.repeat(paddingLength) + MODIFIED_INDICATOR;
-            line += lineIndicator + lines[i];
+            line += N + (' ').repeat(paddingLength) + MODIFIED_INDICATOR;
+            line += changeIndicator + lines[i];
         }
         return line;
     },
@@ -129,16 +134,14 @@ const _ = {
      * @param {string} lineNumber
      * @param {boolean} showSpaces
      *
-     * @returns {{original: string, lineIndicator: string}}
+     * @returns {{originalLine: string, changeIndicator: string}}
      */
     previewOriginalLine: (originalLine, modifiedLine, lineNumber, showSpaces) => {
-        if (showSpaces) {
-            originalLine = utils.replaceTabs(utils.replaceSpaces(originalLine, SPACE), TAB);
-        }
-        let hasNewLines = modifiedLine.split(N);
+        originalLine = showSpaces ? _.showSpaces(originalLine) : originalLine;
+        const hasNewLines = modifiedLine.split(N);
         return {
-            original: lineNumber + ' '.repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
-            lineIndicator: hasNewLines ? ORIGINAL_INDICATOR_2 : ORIGINAL_INDICATOR_3
+            originalLine: lineNumber + (' ').repeat(3) + ORIGINAL_INDICATOR_1 + originalLine + N,
+            changeIndicator: hasNewLines ? ORIGINAL_INDICATOR_2 : ORIGINAL_INDICATOR_3
         };
     },
 
@@ -151,115 +154,125 @@ const _ = {
      * @returns {string}
      */
     previewModifiedLine: function (originalLine, modifiedLine, lineNumber, showSpaces) {
-        let conf = {
-            original: '',
-            lineIndicator: CHANGED_INDICATOR
-        };
+        let conf = {changeIndicator: CHANGE_INDICATOR};
 
-        if (originalLine != null) {
-            conf = _.previewOriginalLine(...arguments);
-        }
-
-        if (showSpaces) {
-            modifiedLine = utils.replaceTabs(utils.replaceSpaces(modifiedLine, SPACE), TAB);
-        }
+        conf = originalLine == null ? conf : _.previewOriginalLine(...arguments);
+        modifiedLine = showSpaces ? _.showSpaces(modifiedLine) : modifiedLine;
 
         const paddingLength = lineNumber.toString().length;
-        const newLines = _.previewNewLines(modifiedLine, paddingLength, conf.lineIndicator);
+        const content = _.previewContent(modifiedLine, paddingLength, conf.changeIndicator);
 
-        return conf.original + (originalLine ? ' '.repeat(paddingLength) : lineNumber) +
-               MODIFIED_INDICATOR + conf.lineIndicator + newLines;
+        lineNumber = originalLine ? (' ').repeat(paddingLength) : lineNumber;
+        return (conf.originalLine || '') + lineNumber + MODIFIED_INDICATOR + conf.changeIndicator + content;
     },
 
     /**
+     * @param {string} lineNumber
+     * @param {string} line
+     * @param {boolean} showSpaces
      *
-     * @param sModifiedFileContent
-     * @param sLineNumber
-     * @param sLine
-     * @param showSpaces
-     * @returns {*}
+     * @returns {string}
      */
-    previewDeletedLine: (sModifiedFileContent, sLineNumber, sLine, showSpaces) => {
-        if (showSpaces) {
-            sLine = utils.replaceTabs(utils.replaceSpaces(sLine, SPACE), TAB);
-        }
-        return sLineNumber + DELETED_INDICATOR + CHANGED_INDICATOR + sLine + N;
+    previewDeletedLine: (lineNumber, line, showSpaces) => {
+        return lineNumber + DELETED_INDICATOR + CHANGE_INDICATOR + (showSpaces ? _.showSpaces(line) : line) + N;
     },
 
     /**
-     * @param aOriginalLines
-     * @param aModifiedLines
+     * @param {string[]} originalLines
+     * @param {string[]} modifiedLines
      * @param options
+     *
+     * @returns {string}
      */
-    applyChanges: (aOriginalLines, aModifiedLines, options) => {
+    preview: (originalLines, modifiedLines, options) => {
         options = options || {};
 
-        let sModifiedFileContent = '';
+        let modifiedFileContent = '';
 
-        for (let i in aModifiedLines) {
-            if (aModifiedLines.hasOwnProperty(i)) {
-                let nPaddingLength = aOriginalLines.length.toString().length;
-                let sLineNumber = options.preview ? _.padPage((parseInt(i) + 1), nPaddingLength, ' ') : '';
+        for (let i in modifiedLines) {
+            if (modifiedLines.hasOwnProperty(i)) {
+                let nPaddingLength = originalLines.length.toString().length;
+                let sLineNumber = _.padPage((parseInt(i) + 1), nPaddingLength, ' ');
 
-                let sModifiedLine = aModifiedLines[i];
+                let sModifiedLine = modifiedLines[i];
                 if (sModifiedLine !== false) {
-                    if (sModifiedLine != null && aOriginalLines[i] !== sModifiedLine) {
-                        if (options.preview) {
-                            const originalLine = options.hideOriginalLines ? null : aOriginalLines[i];
-                            sModifiedLine = _.previewModifiedLine(originalLine, sModifiedLine, sLineNumber, options.showSpaces);
-                        }
-                        sModifiedFileContent += sModifiedLine + N;
+                    if (sModifiedLine != null && originalLines[i] !== sModifiedLine) {
+                        const originalLine = options.hideOriginalLines ? null : originalLines[i];
+                        sModifiedLine = _.previewModifiedLine(originalLine, sModifiedLine, sLineNumber, options.showSpaces);
+                        modifiedFileContent += sModifiedLine + N;
                     } else {
-                        if (options.preview) {
-                            aOriginalLines[i] = _.previewLineNumber(sLineNumber, aOriginalLines[i], options.showSpaces);
-                        }
-                        if (!options.preview || options.previewUnchangedLines) {
-                            sModifiedFileContent += aOriginalLines[i] + N;
+                        originalLines[i] = _.previewLineNumber(sLineNumber, originalLines[i], options.showSpaces);
+                        if (options.previewUnchangedLines) {
+                            modifiedFileContent += originalLines[i] + N;
                         }
                     }
-                } else if (options.preview) {
-                    sModifiedFileContent += _.previewDeletedLine(sModifiedFileContent, sLineNumber, aOriginalLines[i], options.showSpaces);
+                } else {
+                    modifiedFileContent += _.previewDeletedLine(sLineNumber, originalLines[i], options.showSpaces);
                 }
             }
         }
 
-        return sModifiedFileContent;
+        modifiedFileContent = utils.replaceLastOccurrence(modifiedFileContent, N)
+        return modifiedFileContent;
     },
 
     /**
+     * @param {string[]} originalLines
+     * @param {string[]} modifiedLines
      *
-     * @param aModifiedLines
-     * @param aLines
-     * @param nIndex
-     * @returns {{}}
+     * @returns {string}
      */
-    filterLines: (aModifiedLines, aLines, nIndex) => {
-        let oLines = {};
-        if (aModifiedLines.length > (nIndex)) {
-            oLines[nIndex + 1] = aModifiedLines[nIndex];
+    applyChanges: (originalLines, modifiedLines) => {
+        return modifiedLines
+            .map((line, i) => {
+                const modifiedLine = modifiedLines[i];
+                if (modifiedLine === false) {
+                    return false;
+                }
+                if (modifiedLine != null && originalLines[i] !== modifiedLine) {
+                    return modifiedLine;
+                } else {
+                    return originalLines[i];
+                }
+            })
+            .filter(utils.isString)
+            .join(N);
+    },
+
+    /**
+     * @param {string[]} modifiedLines
+     * @param {number} index
+     *
+     * @returns {Object.<string, string>}
+     */
+    filterLines: (modifiedLines, index) => {
+        let lines = {};
+        if (modifiedLines.length > index) {
+            lines[index + 1] = modifiedLines[index];
         }
-        return oLines;
+        return lines;
     },
 
     /**
      *
-     * @param onLine
-     * @param modifiedLines
-     * @param oLines
-     * @param nIndex
-     * @returns {*}
+     * @param {function} onLine
+     * @param {string[]} modifiedLines
+     * @param {Object.<string, string>} lines
+     * @param {number} index
+     *
+     * @returns {string[]}
      */
-    pipeToLineHandler: (onLine, modifiedLines, oLines, nIndex) => {
-        if (Object.keys(oLines).length === 0) {
+    pipeToLineHandler: (onLine, modifiedLines, lines, index) => {
+        if (Object.keys(lines).length === 0) {
             return modifiedLines;
         }
-        let line = oLines[Object.keys(oLines)[0]];
+        let line = lines[Object.keys(lines)[0]];
         if (line === false) {
             return modifiedLines;
         }
-        let sResult = onLine(line, (nIndex + 1));
-        if (sResult != null) {
-            modifiedLines[nIndex] = sResult;
+        let result = onLine(line, (index + 1));
+        if (result != null) {
+            modifiedLines[index] = result;
         }
         return modifiedLines;
     },
@@ -267,6 +280,7 @@ const _ = {
     /**
      * @param {string} filePath
      * @param {string} content
+     *
      * @returns {void}
      */
     writeFile: (filePath, content) => {
@@ -353,7 +367,7 @@ const utils = {
 };
 
 const START_INDICATOR = '│ ';
-const CHANGED_INDICATOR = '┤ ';
+const CHANGE_INDICATOR = '┤ ';
 const MODIFIED_INDICATOR = ' M ';
 const ORIGINAL_INDICATOR_1 = '┌ ';
 const ORIGINAL_INDICATOR_2 = '└▷';
@@ -389,14 +403,14 @@ function file(filePath, onLineCallback, options) {
     let modifiedLines = lines.slice(0);
 
     for (let lineIndex = 0; lineIndex < modifiedLines.length; lineIndex++) {
-        let filteredLines = _.filterLines(modifiedLines, lines, lineIndex);
+        let filteredLines = _.filterLines(modifiedLines, lineIndex);
         modifiedLines = _.pipeToLineHandler(onLineCallback, modifiedLines, filteredLines, lineIndex);
     }
 
     let contentChanged = (_.applyChanges(lines, modifiedLines).trim() !== content.trim());
-    let newContent = _.applyChanges(lines, modifiedLines, options);
+    let newContent = options.preview ? _.preview(lines, modifiedLines, options) : _.applyChanges(lines, modifiedLines);
+    // newContent = utils.replaceLastOccurrence(newContent, N);
 
-    newContent = utils.replaceLastOccurrence(newContent, N);
 
     if (contentChanged || !options.doNotLogUnchanged) {
         _.logProgress(contentChanged, filePath, newContent, options.preview);
