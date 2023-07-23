@@ -18,69 +18,33 @@ const ORIGINAL_INDICATOR_3 = '└▷';
 const DELETED_INDICATOR = ' D ';
 
 const _ = {
-    /**
-     * @param {string} str
-     * @param {string} strToFind
-     *
-     * @returns {Array}
-     */
-    getMatchIndexes: (str, strToFind) => {
-        const indices = [];
-        if (!utils.isString(strToFind) || strToFind.length === 0) {
-            return indices;
-        }
-        let index;
-        let currentIndex = 0;
-        while ((index = str.indexOf(strToFind, currentIndex)) > -1) {
-            indices.push(index);
-            currentIndex = index + strToFind.length;
-        }
-        return indices;
-    },
 
     /**
-     * @param {string} str
-     * @param {string} replacement
-     * @param {number} startIndex
-     * @param {number} endIndex
-     *
-     * @returns {string}
-     */
-    replaceBetweenIndices: (str, replacement, startIndex, endIndex) => {
-        return str.substring(0, startIndex) + replacement + str.substring(endIndex);
-    },
-
-    /**
-     * @param {string} str
-     * @param {string} strToReplace
-     * @param {string} replacement
-     * @param {boolean} isFirst
-     *
-     * @returns {string}
-     */
-    replaceOccurrenceOfString: (str, strToReplace, replacement, isFirst) => {
-        const indices = _.getMatchIndexes(str, strToReplace);
-        if (indices.length === 0) {
-            return str;
-        }
-        const startIndex = isFirst ? indices[0] : indices[indices.length - 1];
-        const endIndex = startIndex + strToReplace.length;
-        return _.replaceBetweenIndices(str, replacement || '', startIndex, endIndex);
-    },
-
-    /**
-     * @param {string} filePath
+     * @param {*} propToCheck
      * @returns {boolean}
      */
-    isValidFile: (filePath) => {
-        try {
-            if (fs.lstatSync(filePath).isDirectory()) {
-                return false;
-            }
-        } catch (e) {
-            return false;
-        }
-        return true;
+    isString: function (propToCheck) {
+        return typeof propToCheck === 'string';
+    },
+
+    /**
+     * @param {string} str
+     * @param {string=} replacement
+     *
+     * @returns {string}
+     */
+    replaceTabs: function (str, replacement) {
+        return str.replace(TAB_REGEX, replacement);
+    },
+
+    /**
+     * @param {string} str
+     * @param {string=} replacement
+     *
+     * @returns {string}
+     */
+    replaceSpaces: function (str, replacement) {
+        return str.replace(SPACES_REGEX, replacement);
     },
 
     /**
@@ -95,23 +59,23 @@ const _ = {
     },
 
     /**
-     * @param {string} content
-     * @returns {string}
-     */
-    showSpaces: (content) => {
-        if (!utils.isString(content)) {
-            return content;
-        }
-        return utils.replaceTabs(utils.replaceSpaces(content, SPACE), TAB);
-    },
-
-    /**
      * @param {number} lineNumber
      * @param {number} lineCount
      * @returns {string}
      */
-    lineNumber: (lineNumber, lineCount) => {
+    padLineNumber: (lineNumber, lineCount) => {
         return _.pad(lineNumber.toString(), lineCount.toString().length, S);
+    },
+
+    /**
+     * @param {string} content
+     * @returns {string}
+     */
+    showSpaces: (content) => {
+        if (!_.isString(content)) {
+            return content;
+        }
+        return _.replaceTabs(_.replaceSpaces(content, SPACE), TAB);
     },
 
     /**
@@ -202,7 +166,7 @@ const _ = {
      * @returns {String}
      */
     previewLine: (line, originalLine, lineNumber, lineCount, options) => {
-        let paddedLineNumber = _.lineNumber(lineNumber, lineCount);
+        let paddedLineNumber = _.padLineNumber(lineNumber, lineCount);
 
         line = options.showSpaces ? _.showSpaces(line) : line;
         originalLine = options.showSpaces ? _.showSpaces(originalLine) : originalLine;
@@ -234,7 +198,7 @@ const _ = {
     preview: (originalLines, modifiedLines, options) => {
         return modifiedLines
             .map((line, i) => _.previewLine(line, originalLines[i], i + 1, originalLines.length, options))
-            .filter(utils.isString) // removing delete (false) statements
+            .filter(_.isString) // removing delete (false) statements
             .join(N);
     },
 
@@ -249,24 +213,6 @@ const _ = {
             const change = onLine(line, index + 1);
             return change == null ? line : change;
         });
-    },
-
-    /**
-     * @param {string} filePath
-     * @param {string} content
-     *
-     * @returns {void}
-     */
-    writeFile: (filePath, content) => {
-        fs.writeFileSync(filePath, content, ENCODING);
-    },
-
-    /**
-     * @param {string} filePath
-     * @returns {string}
-     */
-    readFile: (filePath) => {
-        return fs.readFileSync(filePath, ENCODING).toString();
     },
 
     /**
@@ -301,10 +247,12 @@ const _ = {
     /**
      * @param {string} filePath
      * @param {function} onLineCallback
-     *
-     * @returns {void}
+     * @param {object=} options
+     * @param {boolean=} options.preview
+     * @param {object=} options.previewOptions
+     * @returns {object}
      */
-    validate: (filePath, onLineCallback) => {
+    validate: (filePath, onLineCallback, options) => {
         if (!_.isValidFile(filePath)) {
             throw new Error(`[ERROR] Not a valid file: '${filePath}'!`);
         }
@@ -312,50 +260,44 @@ const _ = {
         if (onLineCallback == null || typeof onLineCallback !== 'function') {
             throw new Error('[ERROR] no callback function given!');
         }
-    }
 
-};
-
-const utils = {
+        options = options || {};
+        options.previewOptions = options.preview ? (options.previewOptions || {}) : null;
+        return options;
+    },
 
     /**
-     * @param {*} propToCheck
+     * @param {string} filePath
      * @returns {boolean}
      */
-    isString: function (propToCheck) {
-        return typeof propToCheck === 'string';
+    isValidFile: (filePath) => {
+        try {
+            if (fs.lstatSync(filePath).isDirectory()) {
+                return false;
+            }
+        } catch (e) {
+            return false;
+        }
+        return true;
     },
 
     /**
-     * @param {string} str
-     * @param {string} strToReplace
-     * @param {string=} replacement
+     * @param {string} filePath
+     * @param {string} content
      *
-     * @returns {string}
+     * @returns {void}
      */
-    replaceLastOccurrence: function (str, strToReplace, replacement) {
-        return _.replaceOccurrenceOfString(str, strToReplace, replacement, false);
+    writeFile: (filePath, content) => {
+        fs.writeFileSync(filePath, content, ENCODING);
     },
 
     /**
-     * @param {string} str
-     * @param {string=} replacement
-     *
+     * @param {string} filePath
      * @returns {string}
      */
-    replaceTabs: function (str, replacement) {
-        return str.replace(TAB_REGEX, replacement);
+    readFile: (filePath) => {
+        return fs.readFileSync(filePath, ENCODING).toString();
     },
-
-    /**
-     * @param {string} str
-     * @param {string=} replacement
-     *
-     * @returns {string}
-     */
-    replaceSpaces: function (str, replacement) {
-        return str.replace(SPACES_REGEX, replacement);
-    }
 
 };
 
@@ -373,37 +315,28 @@ const utils = {
  * @returns {void}
  */
 function changeLine(filePath, onLineCallback, options) {
-    options = options || {};
-    options.previewOptions = options.preview ? (options.previewOptions || {}) : null;
+    options = _.validate(...arguments);
 
-    _.validate(filePath, onLineCallback);
+    const fulltextOriginal = _.readFile(filePath);
+    const linesOriginal = fulltextOriginal.split(N);
+    const linesModified = _.applyUserChanges(linesOriginal.slice(0), onLineCallback);
+    const fulltextModified = linesModified.filter(_.isString).join(N);
 
-    const fulltext = _.readFile(filePath);
+    const changed = fulltextModified !== fulltextOriginal;
 
-    const lines = fulltext.split(N);
-    const linesChanged = _.applyUserChanges(lines.slice(0), onLineCallback);
-
-    const fulltextChanged = linesChanged.filter(utils.isString).join(N);
-    const hasChanged = fulltextChanged !== fulltext;
-
-    if (hasChanged && !options.preview) {
-        _.writeFile(filePath, fulltextChanged);
+    if (changed && !options.preview) {
+        _.writeFile(filePath, fulltextModified);
     }
 
-    if (!hasChanged && options.hideLogOfUnchangedFile) {
+    if (!changed && options.hideLogOfUnchangedFile) {
         return; // Log is not desired
     }
 
     if (options.preview) {
-        _.logPreview(hasChanged, filePath, _.preview(lines, linesChanged, options.previewOptions));
+        _.logPreview(changed, filePath, _.preview(linesOriginal, linesModified, options.previewOptions));
     } else {
-        _.logFileChange(hasChanged, filePath);
+        _.logFileChange(changed, filePath);
     }
 }
 
-if (global.describe != null) { // global mocha method
-    // releasing the private methods for testing.
-    Object.keys(_).forEach((x) => utils[x] = _[x]);
-}
-
-export const rstring = {changeLine: changeLine, utils: utils};
+export const rstring = {changeLine: changeLine};

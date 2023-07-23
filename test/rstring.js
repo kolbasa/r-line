@@ -149,48 +149,72 @@ describe('rstring.js', () => {
         throw new chai.AssertionError('Should have thrown "missing callback" error!');
     });
 
-    describe('file not found', () => {
+    describe('file system errors', () => {
 
-        it('error message', () => {
-            mock({[TEXT_FILE]: CONTENT});
-
-            const missingFile = 'unknown.txt';
-            let lines = [];
+        it('missing read permissions', () => {
+            mock({
+                [TEXT_FILE]: mock.file({
+                    content: CONTENT,
+                    mode: 0o000
+                })
+            });
 
             try {
-                rstring.changeLine(missingFile, (line) => {
-                    lines.push(line);
-                });
-            } catch (err) {
-                expect(err.message).to.equal(`[ERROR] Not a valid file: '${missingFile}'!`);
-                expect(stdout).to.be.empty;
-                expect(lines).to.be.empty;
-                return;
-            }
-
-            throw new chai.AssertionError('Should have thrown "invalid file" error!');
-        });
-
-        it('file not found error', () => {
-            mock({[TEXT_FILE]: CONTENT});
-            const missingFile = 'unknown.txt';
-            try {
-                rstring.changeLine(missingFile, () => {
+                rstring.changeLine(TEXT_FILE, () => {
                     //
                 });
             } catch (err) {
-                //
-            }
-
-            try {
-                fs.readFileSync(missingFile, 'utf-8');
-            } catch (err) {
-                expect(err.message).to.equal(`ENOENT: no such file or directory, open '${missingFile}'`);
+                expect(err.message).to.equal(`EACCES: permission denied, open '${TEXT_FILE}'`);
+                expect(stdout).to.be.empty;
                 return;
             }
-            throw new chai.AssertionError(`File should not exist: '${missingFile}'`);
+
+            throw new chai.AssertionError('Should have thrown "permission denied" error!');
         });
 
+        describe('file not found', () => {
+
+            it('error message', () => {
+                mock({[TEXT_FILE]: CONTENT});
+
+                const missingFile = 'unknown.txt';
+                let lines = [];
+
+                try {
+                    rstring.changeLine(missingFile, (line) => {
+                        lines.push(line);
+                    });
+                } catch (err) {
+                    expect(err.message).to.equal(`[ERROR] Not a valid file: '${missingFile}'!`);
+                    expect(stdout).to.be.empty;
+                    expect(lines).to.be.empty;
+                    return;
+                }
+
+                throw new chai.AssertionError('Should have thrown "invalid file" error!');
+            });
+
+            it('should not create file', () => {
+                mock({[TEXT_FILE]: CONTENT});
+                const missingFile = 'unknown.txt';
+                try {
+                    rstring.changeLine(missingFile, () => {
+                        //
+                    });
+                } catch (err) {
+                    //
+                }
+
+                try {
+                    fs.readFileSync(missingFile, 'utf-8');
+                } catch (err) {
+                    expect(err.message).to.equal(`ENOENT: no such file or directory, open '${missingFile}'`);
+                    return;
+                }
+                throw new chai.AssertionError(`File should not exist: '${missingFile}'`);
+            });
+
+        });
 
     });
 
