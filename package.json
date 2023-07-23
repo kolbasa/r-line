@@ -1,12 +1,21 @@
 {
-  "name": "rstring",
+  "name": "r-line",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "test": "mocha 'test/**/*.js'"
   },
+  "author": "Michael Jedich",
   "license": "MIT",
-  "main": "index.js",
+  "homepage": "https://github.com/kolbasa/r-line",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kolbasa/r-line.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kolbasa/r-line/issues"
+  },
+  "main": "lib/r-line.js",
   "engines": {
     "node": ">= 16"
   },

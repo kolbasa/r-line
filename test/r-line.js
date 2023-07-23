@@ -1,5 +1,5 @@
 import chai, {expect} from 'chai';
-import {rstring} from '../rstring.js';
+import rl from '../lib/r-line.js';
 
 import fs from 'fs';
 import mock from 'mock-fs';
@@ -59,7 +59,7 @@ function readTextFile() {
     return fs.readFileSync(TEXT_FILE, 'utf-8').toString();
 }
 
-describe('rstring.js', () => {
+describe('rl.js', () => {
 
     beforeEach(startConsoleLogRecording);
 
@@ -91,7 +91,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: options.content || CONTENT});
         }
 
-        rstring.changeLine(
+        rl.replaceLine(
             TEXT_FILE,
             (line) => {
                 if (linesToChange[line] != null) {
@@ -122,7 +122,7 @@ describe('rstring.js', () => {
     it('number of lines', () => {
         mock({[TEXT_FILE]: CONTENT});
         let lines = [];
-        rstring.changeLine(TEXT_FILE, (line) => {
+        rl.replaceLine(TEXT_FILE, (line) => {
             lines.push(line);
         });
         expect(lines).to.deep.equal(CONTENT.split(N));
@@ -139,7 +139,7 @@ describe('rstring.js', () => {
         mock({[TEXT_FILE]: CONTENT});
         try {
             // noinspection JSCheckFunctionSignatures
-            rstring.changeLine(TEXT_FILE);
+            rl.replaceLine(TEXT_FILE);
         } catch (err) {
             expect(err.message).to.equal(`[ERROR] no callback function given!`);
             expect(stdout).to.be.empty;
@@ -160,7 +160,7 @@ describe('rstring.js', () => {
             });
 
             try {
-                rstring.changeLine(TEXT_FILE, () => {
+                rl.replaceLine(TEXT_FILE, () => {
                     //
                 });
             } catch (err) {
@@ -181,7 +181,7 @@ describe('rstring.js', () => {
                 let lines = [];
 
                 try {
-                    rstring.changeLine(missingFile, (line) => {
+                    rl.replaceLine(missingFile, (line) => {
                         lines.push(line);
                     });
                 } catch (err) {
@@ -198,7 +198,7 @@ describe('rstring.js', () => {
                 mock({[TEXT_FILE]: CONTENT});
                 const missingFile = 'unknown.txt';
                 try {
-                    rstring.changeLine(missingFile, () => {
+                    rl.replaceLine(missingFile, () => {
                         //
                     });
                 } catch (err) {
@@ -224,7 +224,7 @@ describe('rstring.js', () => {
             mock({[TEXT_FILE]: ''});
 
             let lines = [];
-            rstring.changeLine(TEXT_FILE, (line) => {
+            rl.replaceLine(TEXT_FILE, (line) => {
                 lines.push(line);
             });
 
@@ -237,7 +237,7 @@ describe('rstring.js', () => {
         it('adding lines', () => {
             mock({[TEXT_FILE]: ''});
 
-            rstring.changeLine(TEXT_FILE, () => CONTENT);
+            rl.replaceLine(TEXT_FILE, () => CONTENT);
 
             expect(readTextFile()).to.equal(CONTENT);
             expect(stdout).to.equal(REPLACING_FILE_LOG);
