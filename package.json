@@ -5,6 +5,11 @@
   "scripts": {
     "test": "mocha 'test/**/*.js'"
   },
+  "license": "MIT",
+  "main": "index.js",
+  "engines": {
+    "node": ">= 16"
+  },
   "devDependencies": {
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
