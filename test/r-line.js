@@ -155,15 +155,16 @@ describe('rl.js', () => {
             mock({[TEXT_FILE]: CONTENT});
 
             const lines = [];
-            rl.replaceLine(TEXT_FILE, (line, index, context) => {
-                lines.push([line, index, context]);
+            rl.replaceLine(TEXT_FILE, (line, context) => {
+                lines.push([line, context]);
             });
 
             expect(lines).to.deep.equal(
                 [
                     [
-                        A, 1,
+                        A,
                         {
+                            lineNumber: 1,
                             previous: {
                                 line: undefined,
                                 lines: []
@@ -175,8 +176,9 @@ describe('rl.js', () => {
                         }
                     ],
                     [
-                        B, 2,
+                        B,
                         {
+                            lineNumber: 2,
                             previous: {
                                 line: A,
                                 lines: [A]
@@ -188,8 +190,9 @@ describe('rl.js', () => {
                         }
                     ],
                     [
-                        C, 3,
+                        C,
                         {
+                            lineNumber: 3,
                             previous: {
                                 line: B,
                                 lines: [A, B]
