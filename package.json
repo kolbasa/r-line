@@ -1,6 +1,7 @@
 {
   "name": "r-line",
   "version": "1.0.0",
+  "description": "Simple node script for quickly modifying text files.",
   "type": "module",
   "scripts": {
     "test": "mocha 'test/**/*.js'"
@@ -17,8 +18,15 @@
   },
   "main": "lib/r-line.js",
   "engines": {
-    "node": ">= 16"
+    "node": ">= 14"
   },
+  "keywords": [
+    "replace",
+    "line",
+    "textfile",
+    "preview",
+    "dryrun"
+  ],
   "devDependencies": {
     "chai": "^4.3.7",
     "mocha": "^10.2.0",
