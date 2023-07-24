@@ -149,6 +149,136 @@ describe('rl.js', () => {
         throw new chai.AssertionError('Should have thrown "missing callback" error!');
     });
 
+    it('context', () => {
+        mock({[TEXT_FILE]: CONTENT});
+
+        const lines = [];
+        rl.replaceLine(TEXT_FILE, (line, index, context) => {
+            lines.push([line, index, context]);
+        });
+
+        expect(lines).to.deep.equal(
+            [
+                [
+                    A, 1,
+                    {
+                        previous: {
+                            line: undefined,
+                            lines: []
+                        },
+                        next: {
+                            line: B,
+                            lines: [B, C]
+                        }
+                    }
+                ],
+                [
+                    B, 2,
+                    {
+                        previous: {
+                            line: A,
+                            lines: [A]
+                        },
+                        next: {
+                            line: C,
+                            lines: [C]
+                        }
+                    }
+                ],
+                [
+                    C, 3,
+                    {
+                        previous: {
+                            line: B,
+                            lines: [A, B]
+                        },
+                        next: {
+                            line: undefined,
+                            lines: []
+                        }
+                    }
+                ]
+            ]
+        );
+    });
+
+    describe('file helper functions', () => {
+
+        /**
+         * @returns {void}
+         */
+        function mockFileStructure() {
+            mock({
+                'path/to/some.png': '',
+                'path/to/fake/dir': {
+                    'c.txt': '',
+                    'a.txt': '',
+                    'b.txt': '',
+                    'empty-dir': {}
+                },
+                'some/other/path': {
+                    'some-file.txt': ''
+                }
+            });
+        }
+
+        const FILES1 = [
+            'path/to/fake/dir/a.txt',
+            'path/to/fake/dir/b.txt',
+            'path/to/fake/dir/c.txt',
+            'path/to/some.png'
+        ];
+
+        const FILES2 = [
+            'some/other/path/some-file.txt'
+        ];
+
+        it('list files', () => {
+            mockFileStructure();
+
+            expect(rl.listFiles('path')).to.deep.equal(FILES1);
+
+            expect(rl.listFiles('some/other/path')).to.deep.equal(FILES2);
+
+            expect(rl.listFiles('path/to/fake/dir/empty-dir')).to.deep.equal([]);
+
+            try {
+                expect(rl.listFiles('no/files')).to.deep.equal([]);
+            } catch(err) {
+                expect(err.message).to.equal(`ENOENT: no such file or directory, scandir 'no/files'`);
+                return;
+            }
+
+            throw new chai.AssertionError('Should have thrown "scandir" error!');
+        });
+
+        it('iterate files', () => {
+            mockFileStructure();
+
+            const files1 = [];
+            rl.iterateFiles('path', (file) => {
+                files1.push(file)
+            })
+            expect(files1).to.deep.equal(FILES1);
+
+            const files2 = [];
+            rl.iterateFiles('path', (file) => {
+                files2.push(file)
+            })
+            expect(files2).to.deep.equal(FILES1);
+
+            try {
+                expect(rl.listFiles('no/files')).to.deep.equal([]);
+            } catch(err) {
+                expect(err.message).to.equal(`ENOENT: no such file or directory, scandir 'no/files'`);
+                return;
+            }
+
+            throw new chai.AssertionError('Should have thrown "scandir" error!');
+        });
+
+    });
+
     describe('file system errors', () => {
 
         it('missing read permissions', () => {
