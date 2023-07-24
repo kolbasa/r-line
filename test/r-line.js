@@ -315,13 +315,13 @@ describe('rl.js', () => {
                         lines.push(line);
                     });
                 } catch (err) {
-                    expect(err.message).to.equal(`[ERROR] Not a valid file: '${missingFile}'!`);
+                    expect(err.message).to.equal(`ENOENT: no such file or directory, open '${missingFile}'`);
                     expect(stdout).to.be.empty;
                     expect(lines).to.be.empty;
                     return;
                 }
 
-                throw new chai.AssertionError('Should have thrown "invalid file" error!');
+                throw new chai.AssertionError('Should have thrown "no such file" error!');
             });
 
             it('should not create file', () => {
