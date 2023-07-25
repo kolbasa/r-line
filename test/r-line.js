@@ -369,7 +369,7 @@ describe('rl.js', () => {
                     expect(stdout).to.equal(
                         READING_FILE_LOG + N +
                         '1   ┌ A' + N +
-                        '  M └▷D' + N
+                        '  C └▷D' + N
                     );
                 });
 
@@ -397,7 +397,7 @@ describe('rl.js', () => {
                         changeLines({A: D}, {preview: true});
                         expectPreviewContent(
                             '1   ┌ A' + N +
-                            '  M └▷D'
+                            '  C └▷D'
                         );
                     });
 
@@ -405,7 +405,7 @@ describe('rl.js', () => {
                         changeLines({B: D}, {preview: true});
                         expectPreviewContent(
                             '2   ┌ B' + N +
-                            '  M └▷D'
+                            '  C └▷D'
                         );
                     });
 
@@ -413,16 +413,16 @@ describe('rl.js', () => {
                         changeLines({C: D}, {preview: true});
                         expectPreviewContent(
                             '3   ┌ C' + N +
-                            '  M └▷D'
+                            '  C └▷D'
                         );
                     });
 
                     it('change all', () => {
                         changeLines({A: D, B: D, C: D}, {preview: true});
                         expectPreviewContent(
-                            '1   ┌ A' + N + '  M └▷D' + N +
-                            '2   ┌ B' + N + '  M └▷D' + N +
-                            '3   ┌ C' + N + '  M └▷D'
+                            '1   ┌ A' + N + '  C └▷D' + N +
+                            '2   ┌ B' + N + '  C └▷D' + N +
+                            '3   ┌ C' + N + '  C └▷D'
                         );
                     });
 
@@ -438,7 +438,7 @@ describe('rl.js', () => {
                                 changeLines({A: D + '  '}, {preview: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌ A' + N +
-                                    '  M └▷D' + SPACE + SPACE
+                                    '  C └▷D' + SPACE + SPACE
                                 );
                             });
 
@@ -446,7 +446,7 @@ describe('rl.js', () => {
                                 changeLines({A: '  ' + D}, {preview: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌ A' + N +
-                                    '  M └▷' + SPACE + SPACE + 'D'
+                                    '  C └▷' + SPACE + SPACE + 'D'
                                 );
                             });
 
@@ -458,7 +458,7 @@ describe('rl.js', () => {
                                 changeLines({A: D + T + T}, {preview: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌ A' + N +
-                                    '  M └▷D' + TAB + TAB
+                                    '  C └▷D' + TAB + TAB
                                 );
                             });
 
@@ -466,7 +466,7 @@ describe('rl.js', () => {
                                 changeLines({A: T + T + D}, {preview: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌ A' + N +
-                                    '  M └▷' + TAB + TAB + 'D'
+                                    '  C └▷' + TAB + TAB + 'D'
                                 );
                             });
 
@@ -534,7 +534,7 @@ describe('rl.js', () => {
                         changeLines({A: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   ┌ A' + N +
-                            '  M └▷D' + N +
+                            '  C └▷D' + N +
                             '2   │ B' + N +
                             '3   │ C'
                         );
@@ -545,7 +545,7 @@ describe('rl.js', () => {
                         expectPreviewContent(
                             '1   │ A' + N +
                             '2   ┌ B' + N +
-                            '  M └▷D' + N +
+                            '  C └▷D' + N +
                             '3   │ C'
                         );
                     });
@@ -556,7 +556,7 @@ describe('rl.js', () => {
                             '1   │ A' + N +
                             '2   │ B' + N +
                             '3   ┌ C' + N +
-                            '  M └▷D'
+                            '  C └▷D'
                         );
                     });
 
@@ -564,11 +564,11 @@ describe('rl.js', () => {
                         changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   ┌ A' + N +
-                            '  M └▷D' + N +
+                            '  C └▷D' + N +
                             '2   ┌ B' + N +
-                            '  M └▷D' + N +
+                            '  C └▷D' + N +
                             '3   ┌ C' + N +
-                            '  M └▷D'
+                            '  C └▷D'
                         );
                     });
 
@@ -578,25 +578,25 @@ describe('rl.js', () => {
 
                     it('first line', () => {
                         changeLines({A: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
-                        expectPreviewContent('1 M ┤ D');
+                        expectPreviewContent('1 C ┤ D');
                     });
 
                     it('second line', () => {
                         changeLines({B: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
-                        expectPreviewContent('2 M ┤ D');
+                        expectPreviewContent('2 C ┤ D');
                     });
 
                     it('last line', () => {
                         changeLines({C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
-                        expectPreviewContent('3 M ┤ D');
+                        expectPreviewContent('3 C ┤ D');
                     });
 
                     it('change all', () => {
                         changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
                         expectPreviewContent(
-                            '1 M ┤ D' + N +
-                            '2 M ┤ D' + N +
-                            '3 M ┤ D'
+                            '1 C ┤ D' + N +
+                            '2 C ┤ D' + N +
+                            '3 C ┤ D'
                         );
                     });
 
@@ -613,7 +613,7 @@ describe('rl.js', () => {
                             }
                         });
                         expectPreviewContent(
-                            '1 M ┤ D' + N +
+                            '1 C ┤ D' + N +
                             '2   │ B' + N +
                             '3   │ C'
                         );
@@ -629,7 +629,7 @@ describe('rl.js', () => {
                         });
                         expectPreviewContent(
                             '1   │ A' + N +
-                            '2 M ┤ D' + N +
+                            '2 C ┤ D' + N +
                             '3   │ C'
                         );
                     });
@@ -645,7 +645,7 @@ describe('rl.js', () => {
                         expectPreviewContent(
                             '1   │ A' + N +
                             '2   │ B' + N +
-                            '3 M ┤ D'
+                            '3 C ┤ D'
                         );
                     });
 
@@ -658,9 +658,9 @@ describe('rl.js', () => {
                             }
                         });
                         expectPreviewContent(
-                            '1 M ┤ D' + N +
-                            '2 M ┤ D' + N +
-                            '3 M ┤ D'
+                            '1 C ┤ D' + N +
+                            '2 C ┤ D' + N +
+                            '3 C ┤ D'
                         );
                     });
 
@@ -746,7 +746,7 @@ describe('rl.js', () => {
                     changeLines({A: D, B: 0}, {preview: true});
                     expectPreviewContent(
                         '1   ┌ A' + N +
-                        '  M └▷D' + N +
+                        '  C └▷D' + N +
                         '2 D ┤ B'
                     );
                 });
@@ -755,7 +755,7 @@ describe('rl.js', () => {
                     changeLines({A: D, B: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   ┌ A' + N +
-                        '  M └▷D' + N +
+                        '  C └▷D' + N +
                         '2 D ┤ B' + N +
                         '3   │ C'
                     );
@@ -764,7 +764,7 @@ describe('rl.js', () => {
                 it('hide original lines', () => {
                     changeLines({A: D, B: 0}, {preview: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent(
-                        '1 M ┤ D' + N +
+                        '1 C ┤ D' + N +
                         '2 D ┤ B'
                     );
                 });
@@ -778,7 +778,7 @@ describe('rl.js', () => {
                         }
                     });
                     expectPreviewContent(
-                        '1 M ┤ D' + N +
+                        '1 C ┤ D' + N +
                         '2 D ┤ B' + N +
                         '3   │ C'
                     );
