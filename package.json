@@ -1,8 +1,7 @@
 {
   "name": "r-line",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Simple node script for quickly modifying text files.",
-  "type": "module",
   "scripts": {
     "test": "mocha 'test/**/*.js'"
   },

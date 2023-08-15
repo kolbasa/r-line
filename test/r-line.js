@@ -1,8 +1,10 @@
-import chai, {expect} from 'chai';
-import rl from '../lib/r-line.js';
+const chai = require('chai')
+const expect = chai.expect;
 
-import fs from 'fs';
-import mock from 'mock-fs';
+const rl =  require('../lib/r-line.js');
+
+const fs = require('fs');
+const mock = require('mock-fs');
 
 const A = 'A';
 const B = 'B';
@@ -118,7 +120,7 @@ describe('rl.js', () => {
          */
         function expectPreviewContent(previewContent, content) {
             expect(readTextFile()).to.equal(content || CONTENT);
-            expect(stdout).to.equal(READING_FILE_LOG + (previewContent == null ? '' : N + previewContent + N));
+            expect(stdout).to.equal(READING_FILE_LOG + (previewContent == null ? '' : N + previewContent + N + N));
         }
 
         it('number of lines', () => {
@@ -369,7 +371,7 @@ describe('rl.js', () => {
                     expect(stdout).to.equal(
                         READING_FILE_LOG + N +
                         '1   ┌ A' + N +
-                        '  C └▷D' + N
+                        '  C └▷D' + N + N
                     );
                 });
 
