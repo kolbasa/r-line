@@ -1,7 +1,7 @@
-const chai = require('chai')
+const chai = require('chai');
 const expect = chai.expect;
 
-const rl =  require('../lib/r-line.js');
+const rl = require('../lib/r-line.js');
 
 const fs = require('fs');
 const mock = require('mock-fs');
@@ -212,32 +212,47 @@ describe('rl.js', () => {
         describe('list files', () => {
 
             /**
+             * @type {"\\" | "/"}
+             */
+            const SEP = require('path').sep;
+
+            /**
+             * Converts the file separator depending on the platform.
+             *
+             * @param {string} path
+             * @returns {string}
+             */
+            function _(path) {
+                return path.replaceAll('/', SEP);
+            }
+
+            /**
              * @returns {void}
              */
             function mockFileStructure() {
                 mock({
-                    'path/to/some.png': '',
-                    'path/to/fake/dir': {
+                    [_('path/to/some.png')]: '',
+                    [_('path/to/fake/dir')]: {
                         'c.txt': '',
                         'a.txt': '',
                         'b.txt': '',
                         'empty-dir': {}
                     },
-                    'some/other/path': {
+                    [_('some/other/path')]: {
                         'some-file.txt': ''
                     }
                 });
             }
 
             const FILES1 = [
-                'path/to/fake/dir/a.txt',
-                'path/to/fake/dir/b.txt',
-                'path/to/fake/dir/c.txt',
-                'path/to/some.png'
+                _('path/to/fake/dir/a.txt'),
+                _('path/to/fake/dir/b.txt'),
+                _('path/to/fake/dir/c.txt'),
+                _('path/to/some.png')
             ];
 
             const FILES2 = [
-                'some/other/path/some-file.txt'
+                _('some/other/path/some-file.txt')
             ];
 
             it('iterate files', () => {
@@ -247,18 +262,19 @@ describe('rl.js', () => {
                 expect(files1).to.deep.equal(FILES1);
 
                 const files2 = [];
-                rl.listFiles('some/other/path', (file) => files2.push(file));
+                rl.listFiles(_('some/other/path'), (file) => files2.push(file));
                 expect(files2).to.deep.equal(FILES2);
             });
 
             it('invalid directory', () => {
                 mockFileStructure();
+                const invalidDir = _('no/files');
                 try {
-                    rl.listFiles('no/files', () => {
+                    rl.listFiles(invalidDir, () => {
                         //
                     });
                 } catch (err) {
-                    expect(err.message).to.equal(`ENOENT: no such file or directory, scandir 'no/files'`);
+                    expect(err.message).to.equal(`ENOENT: no such file or directory, scandir '${invalidDir}'`);
                     return;
                 }
                 throw new chai.AssertionError('Should have thrown "scandir" error!');
