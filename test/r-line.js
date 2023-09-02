@@ -848,25 +848,50 @@ describe('rl.js', () => {
                             );
                         });
 
-                        it('new line', () => {
-                            const content = (
-                                ' A' + N +
-                                ' B'
-                            );
+                        describe('new line', () => {
 
-                            changeLines({' A': ' D' + N + ' D'},
-                                {
-                                    content: content,
-                                    preview: true
-                                }
-                            );
+                            it('should trim', () => {
+                                const content = (
+                                    ' A' + N +
+                                    ' B'
+                                );
 
-                            expectPreviewContent(
-                                '1   ┌  A' + N +
-                                '  C └▷ D' + N +
-                                '       D',
-                                content
-                            );
+                                changeLines({' A': ' C' + N + ' D'},
+                                    {
+                                        content: content,
+                                        preview: true
+                                    }
+                                );
+
+                                expectPreviewContent(
+                                    '1   ┌  A' + N +
+                                    '  C └▷ C' + N +
+                                    '       D',
+                                    content
+                                );
+                            });
+
+                            it('should not trim', () => {
+                                const content = (
+                                    ' A' + N +
+                                    ' B'
+                                );
+
+                                changeLines({' A': ' C' + N + 'D'},
+                                    {
+                                        content: content,
+                                        preview: true
+                                    }
+                                );
+
+                                expectPreviewContent(
+                                    '1   ┌   A' + N +
+                                    '  C └▷  C' + N +
+                                    '       D',
+                                    content
+                                );
+                            });
+
                         });
 
                         it('relative indentation', () => {
