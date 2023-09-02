@@ -82,6 +82,7 @@ describe('rl.js', () => {
          * @param {boolean=} options.previewOptions.showSpaces
          * @param {boolean=} options.previewOptions.hideOriginalLines
          * @param {boolean=} options.previewOptions.showUnchangedLines
+         * @param {boolean=} options.previewOptions.keepOriginalIndentation
          *
          * @param {boolean=} options.resume The default text file should not be reset
          * @param {string=} options.content If you want to replace the default content of the test text file.
@@ -212,7 +213,7 @@ describe('rl.js', () => {
         describe('list files', () => {
 
             /**
-             * @type {"\\" | "/"}
+             * @type {'\\' | '/'}
              */
             const SEP = require('path').sep;
 
@@ -800,6 +801,195 @@ describe('rl.js', () => {
                         '2 D ┤  B' + N +
                         '3   │  C'
                     );
+                });
+
+            });
+
+            describe('indentation', () => {
+
+                const RELATIVE_INDENTATION = (
+                    ' A' + N +
+                    '  B' + N +
+                    'C' + N +
+                    '  B'
+                );
+
+                describe('change', () => {
+
+                    describe('default', () => {
+
+                        it('should trim left', () => {
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': ' D'},
+                                {
+                                    content: content,
+                                    preview: true
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌  A' + N +
+                                '  C └▷ D',
+                                content
+                            );
+                        });
+
+                        it('relative indentation', () => {
+                            changeLines(
+                                {
+                                    ' A': ' D',
+                                    '  B': '  E'
+                                },
+                                {
+                                    content: RELATIVE_INDENTATION,
+                                    preview: true
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌  A' + N +
+                                '  C └▷ D' + N +
+                                '2   ┌   B' + N +
+                                '  C └▷  E' + N +
+                                '4   ┌  B' + N +
+                                '  C └▷ E',
+                                RELATIVE_INDENTATION
+                            );
+                        });
+
+                    });
+
+                    describe('keep original', () => {
+
+                        it('keepOriginalIndentation=true', () => {
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': ' D'},
+                                {
+                                    content: content,
+                                    preview: true,
+                                    previewOptions: {
+                                        keepOriginalIndentation: true
+                                    }
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌   A' + N +
+                                '  C └▷  D',
+                                content
+                            );
+                        });
+
+                        it('override by showSpaces=true', () => {
+
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': ' D'},
+                                {
+                                    content: content,
+                                    preview: true,
+                                    previewOptions: {
+                                        keepOriginalIndentation: false,
+                                        showSpaces: true
+                                    }
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌  ' + SPACE + 'A' + N +
+                                '  C └▷ ' + SPACE + 'D',
+                                content
+                            );
+
+                        });
+
+                        it('override by showUnchangedLines=true', () => {
+
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': ' D'},
+                                {
+                                    content: content,
+                                    preview: true,
+                                    previewOptions: {
+                                        keepOriginalIndentation: false,
+                                        showUnchangedLines: true
+                                    }
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌   A' + N +
+                                '  C └▷  D' + N +
+                                '2   │   B',
+                                content
+                            );
+
+                        });
+
+                    });
+
+                });
+
+                describe('delete', () => {
+
+                    describe('default', () => {
+
+                        it('should trim left', () => {
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': 0},
+                                {
+                                    content: content,
+                                    preview: true
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1 D ┤  A',
+                                content
+                            );
+                        });
+
+                        it('relative indentation', () => {
+                            changeLines(
+                                {
+                                    ' A': 0,
+                                    '  B': 0
+                                },
+                                {
+                                    content: RELATIVE_INDENTATION,
+                                    preview: true
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1 D ┤  A' + N +
+                                '2 D ┤   B' + N +
+                                '4 D ┤  B',
+                                RELATIVE_INDENTATION
+                            );
+                        });
+
+                    });
+
                 });
 
             });
