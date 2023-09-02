@@ -445,6 +445,16 @@ describe('rl.js', () => {
                         );
                     });
 
+                    it('new line', () => {
+                        changeLines({A: D + N + D + N + D}, {preview: true});
+                        expectPreviewContent(
+                            '1   ┌  A' + N +
+                            '  C └▷ D' + N +
+                            '       D' + N +
+                            '       D'
+                        );
+                    });
+
                 });
 
                 describe('show spaces', () => {
@@ -834,6 +844,27 @@ describe('rl.js', () => {
                             expectPreviewContent(
                                 '1   ┌  A' + N +
                                 '  C └▷ D',
+                                content
+                            );
+                        });
+
+                        it('new line', () => {
+                            const content = (
+                                ' A' + N +
+                                ' B'
+                            );
+
+                            changeLines({' A': ' D' + N + ' D'},
+                                {
+                                    content: content,
+                                    preview: true
+                                }
+                            );
+
+                            expectPreviewContent(
+                                '1   ┌  A' + N +
+                                '  C └▷ D' + N +
+                                '       D',
                                 content
                             );
                         });
