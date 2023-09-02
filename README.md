@@ -36,9 +36,9 @@ This leads to the following output:
 ```
 [INFO] Preview: 'lib/r-line.js'
 
-176   ┌ function preview(originalLines, changedLines, options) {
-    C └▷function foo(originalLines, changedLines, options) {
-337 D ┤ const stringUtils = {
+176   ┌  function preview(originalLines, changedLines, options) {
+    C └▷ function foo(originalLines, changedLines, options) {
+337 D ┤  const stringUtils = {
 
 ```
 
