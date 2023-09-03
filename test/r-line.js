@@ -76,9 +76,10 @@ describe('rl.js', () => {
          * @param {Object.<string, string|0>=} linesToChange
          *
          * @param {object=} options
+         * @param {boolean=} options.dryRun
+         * @param {boolean=} options.hidePreview
          * @param {boolean=} options.hideLogOfUnchangedFile
-         * @param {boolean=} options.preview
-         * @param {object=} options.previewOptions
+         * @param {object=}  options.previewOptions
          * @param {boolean=} options.previewOptions.showSpaces
          * @param {boolean=} options.previewOptions.hideOriginalLines
          * @param {boolean=} options.previewOptions.showUnchangedLines
@@ -89,6 +90,11 @@ describe('rl.js', () => {
          */
         function changeLines(linesToChange, options) {
             options = options || {};
+
+            // The preview is tested separately.
+            if (options.hidePreview == null) {
+                options.hidePreview = true;
+            }
 
             if (options.resume) {
                 resetConsoleLog();
@@ -121,7 +127,7 @@ describe('rl.js', () => {
          */
         function expectPreviewContent(previewContent, content) {
             expect(readTextFile()).to.equal(content || CONTENT);
-            expect(stdout).to.equal(READING_FILE_LOG + (previewContent == null ? '' : N + previewContent + N + N));
+            expect(stdout).to.equal(READING_FILE_LOG + (previewContent == null ? '' : previewContent + N));
         }
 
         it('number of lines', () => {
@@ -371,7 +377,7 @@ describe('rl.js', () => {
             it('adding lines', () => {
                 mock({[TEXT_FILE]: ''});
 
-                rl.replaceLine(TEXT_FILE, () => CONTENT);
+                rl.replaceLine(TEXT_FILE, () => CONTENT, {hidePreview: true});
 
                 expect(readTextFile()).to.equal(CONTENT);
                 expect(stdout).to.equal(REPLACING_FILE_LOG);
@@ -384,23 +390,23 @@ describe('rl.js', () => {
             describe('log', () => {
 
                 it('changed', () => {
-                    changeLines({A: D}, {preview: true, hideLogOfUnchangedFile: true});
+                    changeLines({A: D}, {dryRun: true});
                     expect(stdout).to.equal(
-                        READING_FILE_LOG + N +
+                        READING_FILE_LOG +
                         '1   ┌  A' + N +
-                        '  C └▷ D' + N + N
+                        '  C └▷ D' + N
                     );
                 });
 
                 describe('nothing changed', () => {
 
                     it('default', () => {
-                        changeLines({}, {preview: true});
+                        changeLines({}, {dryRun: true});
                         expect(stdout).to.equal(NOTHING_CHANGED_IN_FILE_LOG);
                     });
 
                     it('do not log unchanged', () => {
-                        changeLines({}, {preview: true, hideLogOfUnchangedFile: true});
+                        changeLines({}, {dryRun: true, hideLogOfUnchangedFile: true});
                         expect(stdout).to.be.empty;
                     });
 
@@ -413,7 +419,7 @@ describe('rl.js', () => {
                 describe('default', () => {
 
                     it('first line', () => {
-                        changeLines({A: D}, {preview: true});
+                        changeLines({A: D}, {dryRun: true});
                         expectPreviewContent(
                             '1   ┌  A' + N +
                             '  C └▷ D'
@@ -421,7 +427,7 @@ describe('rl.js', () => {
                     });
 
                     it('second line', () => {
-                        changeLines({B: D}, {preview: true});
+                        changeLines({B: D}, {dryRun: true});
                         expectPreviewContent(
                             '2   ┌  B' + N +
                             '  C └▷ D'
@@ -429,7 +435,7 @@ describe('rl.js', () => {
                     });
 
                     it('last line', () => {
-                        changeLines({C: D}, {preview: true});
+                        changeLines({C: D}, {dryRun: true});
                         expectPreviewContent(
                             '3   ┌  C' + N +
                             '  C └▷ D'
@@ -437,7 +443,7 @@ describe('rl.js', () => {
                     });
 
                     it('change all', () => {
-                        changeLines({A: D, B: D, C: D}, {preview: true});
+                        changeLines({A: D, B: D, C: D}, {dryRun: true});
                         expectPreviewContent(
                             '1   ┌  A' + N + '  C └▷ D' + N +
                             '2   ┌  B' + N + '  C └▷ D' + N +
@@ -446,7 +452,7 @@ describe('rl.js', () => {
                     });
 
                     it('new line', () => {
-                        changeLines({A: D + N + D + N + D}, {preview: true});
+                        changeLines({A: D + N + D + N + D}, {dryRun: true});
                         expectPreviewContent(
                             '1   ┌  A' + N +
                             '  C └▷ D' + N +
@@ -464,7 +470,7 @@ describe('rl.js', () => {
                         describe('spaces', () => {
 
                             it('start', () => {
-                                changeLines({A: D + '  '}, {preview: true, previewOptions: {showSpaces: true}});
+                                changeLines({A: D + '  '}, {dryRun: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌  A' + N +
                                     '  C └▷ D' + SPACE + SPACE
@@ -472,7 +478,7 @@ describe('rl.js', () => {
                             });
 
                             it('end', () => {
-                                changeLines({A: '  ' + D}, {preview: true, previewOptions: {showSpaces: true}});
+                                changeLines({A: '  ' + D}, {dryRun: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌  A' + N +
                                     '  C └▷ ' + SPACE + SPACE + 'D'
@@ -484,7 +490,7 @@ describe('rl.js', () => {
                         describe('tabs', () => {
 
                             it('start', () => {
-                                changeLines({A: D + T + T}, {preview: true, previewOptions: {showSpaces: true}});
+                                changeLines({A: D + T + T}, {dryRun: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌  A' + N +
                                     '  C └▷ D' + TAB + TAB
@@ -492,7 +498,7 @@ describe('rl.js', () => {
                             });
 
                             it('end', () => {
-                                changeLines({A: T + T + D}, {preview: true, previewOptions: {showSpaces: true}});
+                                changeLines({A: T + T + D}, {dryRun: true, previewOptions: {showSpaces: true}});
                                 expectPreviewContent(
                                     '1   ┌  A' + N +
                                     '  C └▷ ' + TAB + TAB + 'D'
@@ -511,7 +517,7 @@ describe('rl.js', () => {
                                 const content = '  ' + A;
                                 changeLines({[content]: 0}, {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {showSpaces: true}
                                 });
                                 expectPreviewContent('1 D ┤  ' + SPACE + SPACE + 'A', content);
@@ -521,7 +527,7 @@ describe('rl.js', () => {
                                 const content = A + '  ';
                                 changeLines({[content]: 0}, {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {showSpaces: true}
                                 });
                                 expectPreviewContent('1 D ┤  A' + SPACE + SPACE, content);
@@ -535,7 +541,7 @@ describe('rl.js', () => {
                                 const content = T + T + A;
                                 changeLines({[content]: 0}, {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {showSpaces: true}
                                 });
                                 expectPreviewContent('1 D ┤  ' + TAB + TAB + 'A', content);
@@ -545,7 +551,7 @@ describe('rl.js', () => {
                                 const content = A + T + T;
                                 changeLines({[content]: 0}, {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {showSpaces: true}
                                 });
                                 expectPreviewContent('1 D ┤  A' + TAB + TAB, content);
@@ -560,7 +566,7 @@ describe('rl.js', () => {
                 describe('preview unchanged lines', () => {
 
                     it('first line', () => {
-                        changeLines({A: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({A: D}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   ┌  A' + N +
                             '  C └▷ D' + N +
@@ -570,7 +576,7 @@ describe('rl.js', () => {
                     });
 
                     it('second line', () => {
-                        changeLines({B: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({B: D}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   │  A' + N +
                             '2   ┌  B' + N +
@@ -580,7 +586,7 @@ describe('rl.js', () => {
                     });
 
                     it('last line', () => {
-                        changeLines({C: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({C: D}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   │  A' + N +
                             '2   │  B' + N +
@@ -590,7 +596,7 @@ describe('rl.js', () => {
                     });
 
                     it('change all', () => {
-                        changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({A: D, B: D, C: D}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   ┌  A' + N +
                             '  C └▷ D' + N +
@@ -606,22 +612,22 @@ describe('rl.js', () => {
                 describe('hide original lines', () => {
 
                     it('first line', () => {
-                        changeLines({A: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
+                        changeLines({A: D}, {dryRun: true, previewOptions: {hideOriginalLines: true}});
                         expectPreviewContent('1 C ┤  D');
                     });
 
                     it('second line', () => {
-                        changeLines({B: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
+                        changeLines({B: D}, {dryRun: true, previewOptions: {hideOriginalLines: true}});
                         expectPreviewContent('2 C ┤  D');
                     });
 
                     it('last line', () => {
-                        changeLines({C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
+                        changeLines({C: D}, {dryRun: true, previewOptions: {hideOriginalLines: true}});
                         expectPreviewContent('3 C ┤  D');
                     });
 
                     it('change all', () => {
-                        changeLines({A: D, B: D, C: D}, {preview: true, previewOptions: {hideOriginalLines: true}});
+                        changeLines({A: D, B: D, C: D}, {dryRun: true, previewOptions: {hideOriginalLines: true}});
                         expectPreviewContent(
                             '1 C ┤  D' + N +
                             '2 C ┤  D' + N +
@@ -635,7 +641,7 @@ describe('rl.js', () => {
 
                     it('first line', () => {
                         changeLines({A: D}, {
-                            preview: true,
+                            dryRun: true,
                             previewOptions: {
                                 hideOriginalLines: true,
                                 showUnchangedLines: true
@@ -650,7 +656,7 @@ describe('rl.js', () => {
 
                     it('second line', () => {
                         changeLines({B: D}, {
-                            preview: true,
+                            dryRun: true,
                             previewOptions: {
                                 hideOriginalLines: true,
                                 showUnchangedLines: true
@@ -665,7 +671,7 @@ describe('rl.js', () => {
 
                     it('last line', () => {
                         changeLines({C: D}, {
-                            preview: true,
+                            dryRun: true,
                             previewOptions: {
                                 hideOriginalLines: true,
                                 showUnchangedLines: true
@@ -680,7 +686,7 @@ describe('rl.js', () => {
 
                     it('change all', () => {
                         changeLines({A: D, B: D, C: D}, {
-                            preview: true,
+                            dryRun: true,
                             previewOptions: {
                                 hideOriginalLines: true,
                                 showUnchangedLines: true
@@ -702,22 +708,22 @@ describe('rl.js', () => {
                 describe('default', () => {
 
                     it('first line', () => {
-                        changeLines({A: 0}, {preview: true});
+                        changeLines({A: 0}, {dryRun: true});
                         expectPreviewContent('1 D ┤  A');
                     });
 
                     it('second line', () => {
-                        changeLines({B: 0}, {preview: true});
+                        changeLines({B: 0}, {dryRun: true});
                         expectPreviewContent('2 D ┤  B');
                     });
 
                     it('last line', () => {
-                        changeLines({C: 0}, {preview: true});
+                        changeLines({C: 0}, {dryRun: true});
                         expectPreviewContent('3 D ┤  C');
                     });
 
                     it('change all', () => {
-                        changeLines({A: 0, B: 0, C: 0}, {preview: true});
+                        changeLines({A: 0, B: 0, C: 0}, {dryRun: true});
                         expectPreviewContent(
                             '1 D ┤  A' + N +
                             '2 D ┤  B' + N +
@@ -730,7 +736,7 @@ describe('rl.js', () => {
                 describe('preview unchanged lines', () => {
 
                     it('first line', () => {
-                        changeLines({A: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({A: 0}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1 D ┤  A' + N +
                             '2   │  B' + N +
@@ -739,7 +745,7 @@ describe('rl.js', () => {
                     });
 
                     it('second line', () => {
-                        changeLines({B: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({B: 0}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   │  A' + N +
                             '2 D ┤  B' + N +
@@ -748,7 +754,7 @@ describe('rl.js', () => {
                     });
 
                     it('last line', () => {
-                        changeLines({C: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({C: 0}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1   │  A' + N +
                             '2   │  B' + N +
@@ -757,7 +763,7 @@ describe('rl.js', () => {
                     });
 
                     it('change all', () => {
-                        changeLines({A: 0, B: 0, C: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                        changeLines({A: 0, B: 0, C: 0}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                         expectPreviewContent(
                             '1 D ┤  A' + N +
                             '2 D ┤  B' + N +
@@ -772,7 +778,7 @@ describe('rl.js', () => {
             describe('mix of change and delete', () => {
 
                 it('default', () => {
-                    changeLines({A: D, B: 0}, {preview: true});
+                    changeLines({A: D, B: 0}, {dryRun: true});
                     expectPreviewContent(
                         '1   ┌  A' + N +
                         '  C └▷ D' + N +
@@ -781,7 +787,7 @@ describe('rl.js', () => {
                 });
 
                 it('preview unchanged lines', () => {
-                    changeLines({A: D, B: 0}, {preview: true, previewOptions: {showUnchangedLines: true}});
+                    changeLines({A: D, B: 0}, {dryRun: true, previewOptions: {showUnchangedLines: true}});
                     expectPreviewContent(
                         '1   ┌  A' + N +
                         '  C └▷ D' + N +
@@ -791,7 +797,7 @@ describe('rl.js', () => {
                 });
 
                 it('hide original lines', () => {
-                    changeLines({A: D, B: 0}, {preview: true, previewOptions: {hideOriginalLines: true}});
+                    changeLines({A: D, B: 0}, {dryRun: true, previewOptions: {hideOriginalLines: true}});
                     expectPreviewContent(
                         '1 C ┤  D' + N +
                         '2 D ┤  B'
@@ -800,7 +806,7 @@ describe('rl.js', () => {
 
                 it('hideOriginalLines + preview unchanged lines', () => {
                     changeLines({A: D, B: 0}, {
-                        preview: true,
+                        dryRun: true,
                         previewOptions: {
                             showUnchangedLines: true,
                             hideOriginalLines: true
@@ -837,7 +843,7 @@ describe('rl.js', () => {
                             changeLines({' A': ' D'},
                                 {
                                     content: content,
-                                    preview: true
+                                    dryRun: true
                                 }
                             );
 
@@ -859,7 +865,7 @@ describe('rl.js', () => {
                                 changeLines({' A': ' C' + N + ' D'},
                                     {
                                         content: content,
-                                        preview: true
+                                        dryRun: true
                                     }
                                 );
 
@@ -880,7 +886,7 @@ describe('rl.js', () => {
                                 changeLines({' A': ' C' + N + 'D'},
                                     {
                                         content: content,
-                                        preview: true
+                                        dryRun: true
                                     }
                                 );
 
@@ -902,7 +908,7 @@ describe('rl.js', () => {
                                 },
                                 {
                                     content: RELATIVE_INDENTATION,
-                                    preview: true
+                                    dryRun: true
                                 }
                             );
 
@@ -930,7 +936,7 @@ describe('rl.js', () => {
                             changeLines({' A': ' D'},
                                 {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {
                                         keepOriginalIndentation: true
                                     }
@@ -954,7 +960,7 @@ describe('rl.js', () => {
                             changeLines({' A': ' D'},
                                 {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {
                                         keepOriginalIndentation: false,
                                         showSpaces: true
@@ -980,7 +986,7 @@ describe('rl.js', () => {
                             changeLines({' A': ' D'},
                                 {
                                     content: content,
-                                    preview: true,
+                                    dryRun: true,
                                     previewOptions: {
                                         keepOriginalIndentation: false,
                                         showUnchangedLines: true
@@ -1014,7 +1020,7 @@ describe('rl.js', () => {
                             changeLines({' A': 0},
                                 {
                                     content: content,
-                                    preview: true
+                                    dryRun: true
                                 }
                             );
 
@@ -1032,7 +1038,7 @@ describe('rl.js', () => {
                                 },
                                 {
                                     content: RELATIVE_INDENTATION,
-                                    preview: true
+                                    dryRun: true
                                 }
                             );
 
@@ -1081,9 +1087,22 @@ describe('rl.js', () => {
 
             describe('log', () => {
 
-                it('changed', () => {
-                    changeLines({A: D}, {hideLogOfUnchangedFile: true});
-                    expect(stdout).to.equal(REPLACING_FILE_LOG);
+                describe('changed', () => {
+
+                    it('hidePreview: true', () => {
+                        changeLines({A: D}, {hidePreview: true});
+                        expect(stdout).to.equal(REPLACING_FILE_LOG);
+                    });
+
+                    it('hidePreview: false', () => {
+                        changeLines({A: D}, {hidePreview: false});
+                        expect(stdout).to.equal(
+                            REPLACING_FILE_LOG +
+                            '1   ┌  A' + N +
+                            '  C └▷ D' + N
+                        );
+                    });
+
                 });
 
                 describe('nothing changed', () => {
@@ -1094,7 +1113,7 @@ describe('rl.js', () => {
                     });
 
                     it('do not log unchanged', () => {
-                        changeLines({}, {hideLogOfUnchangedFile: true});
+                        changeLines({}, {hideLogOfUnchangedFile: true, hidePreview: false});
                         expect(stdout).to.be.empty;
                     });
 

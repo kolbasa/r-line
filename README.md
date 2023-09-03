@@ -28,7 +28,7 @@ rl.replaceLine('lib/r-line.js', (line) => {
         return false; // return "false" to delete a line
     }
 
-}, {preview: true});
+}, {dryRun: true});
 ```
 
 This leads to the following output:
@@ -42,7 +42,7 @@ This leads to the following output:
 
 ```
 
-If you remove `preview: true`, the changes will be applied.
+If you remove `dryRun: true`, the changes will be applied.
 
 ### Preview options
 
@@ -52,7 +52,6 @@ You can customise the preview with the following optional parameters:
 rl.replaceLine('your/file.js', (line) => {
     //
 }, {
-    preview: true,
     previewOptions: {
         // Visualises whitespaces and tabs.
         showSpaces: true / false, // default := false
@@ -61,7 +60,11 @@ rl.replaceLine('your/file.js', (line) => {
         showUnchangedLines: true / false, // default := false
 
         // Hides the original content of the changed lines.
-        hideOriginalLines: true / false // default := false
+        hideOriginalLines: true / false, // default := false
+
+        // By default unnecessary indentation is removed.
+        // However, the behavior can be turned off.
+        keepOriginalIndentation: true / false // default := false
     }
 });
 ```
